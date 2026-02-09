@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# openmeteo -- CLI tool for the OpenMeteo API suite
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load libraries
+source "${SCRIPT_DIR}/lib/core.sh"
+source "${SCRIPT_DIR}/lib/output.sh"
+source "${SCRIPT_DIR}/lib/geo.sh"
+
+# ---------------------------------------------------------------------------
+# Help
+# ---------------------------------------------------------------------------
+
+_print_version() {
+  echo "openmeteo ${OPENMETEO_VERSION}"
+}
+
+_print_help() {
+  cat <<EOF
+openmeteo ${OPENMETEO_VERSION} -- CLI tool for the OpenMeteo API
+
+Usage:
+  openmeteo <command> [options]
+
+Commands:
+  weather      Weather forecast (up to 16 days)
+  geo          Geocoding (search locations by name)
+  history      Historical weather data (from 1940)
+  ensemble     Ensemble model forecasts
+  climate      Climate change projections (1950-2050)
+  marine       Marine / wave forecasts
+  air-quality  Air quality & pollen forecasts
+  flood        River discharge / flood forecasts
+  elevation    Terrain elevation lookup
+  satellite    Satellite solar radiation data
+
+Output modes:
+  (default)       Human-friendly: colored, with emojis, grouped by day
+  --porcelain     Machine-parseable: flat key=value lines for scripts/agents
+  --raw           Raw JSON from the API (for piping to jq, etc.)
+
+Global options:
+  --api-key=KEY   OpenMeteo API key (overrides OPENMETEO_API_KEY env var)
+  --help          Show help for a command
+  --version       Show version
+
+Environment variables:
+  OPENMETEO_API_KEY   Default API key for commercial access
+
+Examples:
+  openmeteo weather --current --city=London
+  openmeteo geo --search=Berlin
+  openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
+  openmeteo weather --current --city=Tokyo --porcelain
+  openmeteo elevation --lat=47.37 --lon=8.55
+
+Run 'openmeteo <command> --help' for command-specific help.
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+
+if [[ $# -eq 0 ]]; then
+  _print_help
+  exit 0
+fi
+
+command="$1"
+shift
+
+case "${command}" in
+  weather)
+    source "${SCRIPT_DIR}/commands/weather.sh"
+    cmd_weather "$@"
+    ;;
+  geo)
+    source "${SCRIPT_DIR}/commands/geo.sh"
+    cmd_geo "$@"
+    ;;
+  history)
+    source "${SCRIPT_DIR}/commands/history.sh"
+    cmd_history "$@"
+    ;;
+  ensemble)
+    source "${SCRIPT_DIR}/commands/ensemble.sh"
+    cmd_ensemble "$@"
+    ;;
+  climate)
+    source "${SCRIPT_DIR}/commands/climate.sh"
+    cmd_climate "$@"
+    ;;
+  marine)
+    source "${SCRIPT_DIR}/commands/marine.sh"
+    cmd_marine "$@"
+    ;;
+  air-quality)
+    source "${SCRIPT_DIR}/commands/air_quality.sh"
+    cmd_air_quality "$@"
+    ;;
+  flood)
+    source "${SCRIPT_DIR}/commands/flood.sh"
+    cmd_flood "$@"
+    ;;
+  elevation)
+    source "${SCRIPT_DIR}/commands/elevation.sh"
+    cmd_elevation "$@"
+    ;;
+  satellite)
+    source "${SCRIPT_DIR}/commands/satellite.sh"
+    cmd_satellite "$@"
+    ;;
+  --help|-h|help)
+    _print_help
+    exit 0
+    ;;
+  --version|-v|version)
+    _print_version
+    exit 0
+    ;;
+  *)
+    _die "unknown command: '${command}'. Run 'openmeteo --help' for usage."
+    ;;
+esac
