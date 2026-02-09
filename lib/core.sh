@@ -190,6 +190,23 @@ _validate_enum() {
   _die "${name}: '${value}' is not valid. Must be one of: ${allowed%, }"
 }
 
+# Validate ISO 8601 date format (YYYY-MM-DD).
+# Usage: _validate_date "--start-date" "$start_date"
+_validate_date() {
+  local name="$1" value="$2"
+  if ! [[ "${value}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    _die "${name}: '${value}' is not a valid date. Use YYYY-MM-DD format (e.g. 2024-01-15)"
+  fi
+  # Basic range check on month/day
+  local month="${value:5:2}" day="${value:8:2}"
+  if (( 10#${month} < 1 || 10#${month} > 12 )); then
+    _die "${name}: invalid month '${month}' in '${value}'"
+  fi
+  if (( 10#${day} < 1 || 10#${day} > 31 )); then
+    _die "${name}: invalid day '${day}' in '${value}'"
+  fi
+}
+
 # URL-encode a string (minimal: spaces and special chars).
 _urlencode() {
   local string="$1"

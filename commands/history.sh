@@ -1,23 +1,20 @@
 #!/usr/bin/env bash
-# commands/weather.sh -- Weather Forecast API subcommand
+# commands/history.sh -- Historical Weather API subcommand
 
-DEFAULT_FORECAST_DAYS=""  # omit = API default (7)
-DEFAULT_PAST_DAYS=""
-DEFAULT_TIMEZONE="auto"
-DEFAULT_TEMPERATURE_UNIT=""  # omit = API default (celsius)
-DEFAULT_WIND_SPEED_UNIT=""   # omit = API default (kmh)
-DEFAULT_PRECIPITATION_UNIT="" # omit = API default (mm)
+DEFAULT_HISTORY_TIMEZONE="auto"
+DEFAULT_HISTORY_TEMPERATURE_UNIT=""
+DEFAULT_HISTORY_WIND_SPEED_UNIT=""
+DEFAULT_HISTORY_PRECIPITATION_UNIT=""
 
-DEFAULT_CURRENT_PARAMS="temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-DEFAULT_HOURLY_PARAMS="temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m"
-DEFAULT_DAILY_PARAMS="weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max"
+DEFAULT_HISTORY_HOURLY_PARAMS="temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m"
+DEFAULT_HISTORY_DAILY_PARAMS=""
 
-_weather_help() {
+_history_help() {
   cat <<EOF
-openmeteo weather -- Weather forecast (Forecast API)
+openmeteo history -- Historical weather data (Archive API)
 
 Usage:
-  openmeteo weather [options]
+  openmeteo history --start-date=DATE --end-date=DATE [options]
 
 Location (one of these is required):
   --lat=NUM         Latitude (WGS84)
@@ -25,13 +22,13 @@ Location (one of these is required):
   --city=NAME       City name (resolved via Geocoding API)
   --country=CODE    Country filter for city resolution (e.g. GB, DE)
 
+Time range (required):
+  --start-date=DATE   Start date in YYYY-MM-DD format (data from 1940)
+  --end-date=DATE     End date in YYYY-MM-DD format
+
 Data selection:
-  --current               Include current weather conditions
-  --forecast-days=N       Forecast length in days (0-16, default: 7)
-  --past-days=N           Include past days (0-92)
-  --hourly-params=LIST    Comma-separated hourly variables (has sensible defaults)
-  --daily-params=LIST     Comma-separated daily variables (has sensible defaults)
-  --current-params=LIST   Comma-separated current variables (has sensible defaults)
+  --hourly-params=LIST  Comma-separated hourly variables (has sensible defaults)
+  --daily-params=LIST   Comma-separated daily variables
 
 Units:
   --temperature-unit=UNIT   celsius (default) or fahrenheit
@@ -40,19 +37,23 @@ Units:
   --timezone=TZ             IANA timezone or 'auto' (default: auto)
 
 Model:
-  --model=MODEL     Weather model (default: best_match)
+  --model=MODEL     Reanalysis model (default: best_match)
+                    Options: best_match, ecmwf_ifs, ecmwf_ifs_analysis_long_window,
+                    era5_seamless, era5, era5_land, era5_ensemble, cerra
 
-Output:
-  --porcelain       Machine-parseable key=value output
-  --raw             Raw JSON from API
-  --help            Show this help
+Other:
+  --cell-selection=MODE   Grid cell selection: land (default), sea, nearest
+  --porcelain             Machine-parseable key=value output
+  --raw                   Raw JSON from API
+  --help                  Show this help
 
 Examples:
-  openmeteo weather --current --city=London
-  openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
-  openmeteo weather --current --forecast-days=2 --city=London --country=GB
-  openmeteo weather --forecast-days=2 --city=Vienna \\
-    --hourly-params=precipitation,precipitation_probability,weather_code
+  openmeteo history --city=Paris --start-date=2024-01-01 --end-date=2024-01-07
+  openmeteo history --city=Tokyo --start-date=2023-06-01 --end-date=2023-06-30 \\
+    --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
+  openmeteo history --lat=52.52 --lon=13.41 --start-date=2020-12-25 --end-date=2020-12-31 \\
+    --hourly-params=temperature_2m,snowfall,wind_speed_10m --model=era5
+  openmeteo history --city=London --start-date=2024-07-01 --end-date=2024-07-01 --porcelain
 EOF
 }
 
@@ -60,9 +61,7 @@ EOF
 # Input validation
 # ---------------------------------------------------------------------------
 
-# Check a single param against the wrong-category map for weather.
-# Returns a non-empty suggestion string if the param is misplaced; empty if OK.
-_weather_param_suggestion() {
+_history_param_suggestion() {
   local category="$1" param="$2"
 
   case "${category}" in
@@ -70,12 +69,12 @@ _weather_param_suggestion() {
       case "${param}" in
         precipitation)
           echo "not a daily variable. Use 'precipitation_sum'" ;;
-        precipitation_probability)
-          echo "not a daily variable. Use 'precipitation_probability_max', 'precipitation_probability_min', or 'precipitation_probability_mean'" ;;
+        precipitation_probability|precipitation_probability_max|precipitation_probability_min|precipitation_probability_mean)
+          echo "not available in the Historical Weather API" ;;
         temperature_2m)
-          echo "not a daily variable. Use 'temperature_2m_max' and/or 'temperature_2m_min'" ;;
+          echo "not a daily variable. Use 'temperature_2m_max', 'temperature_2m_min', or 'temperature_2m_mean'" ;;
         apparent_temperature)
-          echo "not a daily variable. Use 'apparent_temperature_max' and/or 'apparent_temperature_min'" ;;
+          echo "not a daily variable. Use 'apparent_temperature_max', 'apparent_temperature_min', or 'apparent_temperature_mean'" ;;
         wind_speed_10m)
           echo "not a daily variable. Use 'wind_speed_10m_max'" ;;
         wind_gusts_10m)
@@ -86,29 +85,27 @@ _weather_param_suggestion() {
         showers)   echo "not a daily variable. Use 'showers_sum'" ;;
         snowfall)  echo "not a daily variable. Use 'snowfall_sum'" ;;
         relative_humidity_2m)
-          echo "only available as an hourly/current variable, not daily" ;;
+          echo "not a daily variable. Use 'relative_humidity_2m_max', 'relative_humidity_2m_min', or 'relative_humidity_2m_mean'" ;;
         dew_point_2m)
-          echo "only available as an hourly variable, not daily" ;;
-        cloud_cover|cloud_cover_low|cloud_cover_mid|cloud_cover_high)
-          echo "only available as an hourly/current variable, not daily" ;;
+          echo "not a daily variable. Use 'dew_point_2m_max', 'dew_point_2m_min', or 'dew_point_2m_mean'" ;;
+        cloud_cover)
+          echo "not a daily variable. Use 'cloud_cover_max', 'cloud_cover_min', or 'cloud_cover_mean'" ;;
         pressure_msl|surface_pressure)
-          echo "only available as an hourly/current variable, not daily" ;;
+          echo "only available as an hourly variable, not daily" ;;
         visibility)
           echo "only available as an hourly variable, not daily" ;;
         is_day)
-          echo "only available as an hourly/current variable, not daily" ;;
+          echo "only available as an hourly variable, not daily" ;;
       esac
       ;;
     hourly)
       case "${param}" in
-        temperature_2m_max|temperature_2m_min)
+        temperature_2m_max|temperature_2m_min|temperature_2m_mean)
           echo "a daily variable. Use 'temperature_2m' for hourly" ;;
-        apparent_temperature_max|apparent_temperature_min)
+        apparent_temperature_max|apparent_temperature_min|apparent_temperature_mean)
           echo "a daily variable. Use 'apparent_temperature' for hourly" ;;
         precipitation_sum)
           echo "a daily variable. Use 'precipitation' for hourly" ;;
-        precipitation_probability_max|precipitation_probability_min|precipitation_probability_mean)
-          echo "a daily variable. Use 'precipitation_probability' for hourly" ;;
         precipitation_hours)
           echo "only available as a daily variable" ;;
         wind_speed_10m_max)
@@ -118,7 +115,6 @@ _weather_param_suggestion() {
         wind_direction_10m_dominant)
           echo "a daily variable. Use 'wind_direction_10m' for hourly" ;;
         rain_sum)     echo "a daily variable. Use 'rain' for hourly" ;;
-        showers_sum)  echo "a daily variable. Use 'showers' for hourly" ;;
         snowfall_sum) echo "a daily variable. Use 'snowfall' for hourly" ;;
         sunrise|sunset)
           echo "only available as a daily variable" ;;
@@ -126,38 +122,19 @@ _weather_param_suggestion() {
           echo "only available as a daily variable" ;;
       esac
       ;;
-    current)
-      case "${param}" in
-        temperature_2m_max|temperature_2m_min|apparent_temperature_max|apparent_temperature_min)
-          echo "a daily variable, not available for current conditions" ;;
-        precipitation_sum|rain_sum|showers_sum|snowfall_sum)
-          echo "a daily variable. Use '${param%_sum}' for current" ;;
-        precipitation_probability*)
-          echo "not available for current conditions" ;;
-        sunrise|sunset|daylight_duration)
-          echo "only available as a daily variable" ;;
-        precipitation_hours)
-          echo "only available as a daily variable" ;;
-      esac
-      ;;
   esac
 }
 
-# Validate a comma-separated list of weather params for the given category.
-# Dies with helpful messages if any params are clearly wrong.
-# Usage: _validate_weather_params "daily" "$daily_params"
-_validate_weather_params() {
+_validate_history_params() {
   local category="$1" params_csv="$2"
   local has_error="false"
 
   local old_ifs="${IFS}"
   IFS=','
   for param in ${params_csv}; do
-    # skip empty tokens (trailing commas, etc.)
     [[ -z "${param}" ]] && continue
-
     local suggestion
-    suggestion=$(_weather_param_suggestion "${category}" "${param}")
+    suggestion=$(_history_param_suggestion "${category}" "${param}")
     if [[ -n "${suggestion}" ]]; then
       _error "--${category}-params: '${param}' is ${suggestion}"
       has_error="true"
@@ -170,28 +147,35 @@ _validate_weather_params() {
   fi
 }
 
-# Validate all weather command inputs after arg parsing.
-_validate_weather_inputs() {
-  local lat="$1" lon="$2" forecast_days="$3" past_days="$4"
+_validate_history_inputs() {
+  local lat="$1" lon="$2" start_date="$3" end_date="$4"
   local temperature_unit="$5" wind_speed_unit="$6" precipitation_unit="$7"
-  local hourly_params="$8" daily_params="$9"
-  local current_params="${10:-}"
+  local cell_selection="$8" hourly_params="$9" daily_params="${10:-}"
 
-  # Numeric values
-  [[ -n "${lat}" ]]            && _validate_number "--lat" "${lat}"
-  [[ -n "${lon}" ]]            && _validate_number "--lon" "${lon}"
-  [[ -n "${forecast_days}" ]]  && _validate_integer "--forecast-days" "${forecast_days}" 0 16
-  [[ -n "${past_days}" ]]      && _validate_integer "--past-days" "${past_days}" 0 92
+  # Numeric
+  [[ -n "${lat}" ]] && _validate_number "--lat" "${lat}"
+  [[ -n "${lon}" ]] && _validate_number "--lon" "${lon}"
 
-  # Enum values
+  # Dates (required -- checked for presence by caller)
+  [[ -n "${start_date}" ]] && _validate_date "--start-date" "${start_date}"
+  [[ -n "${end_date}" ]]   && _validate_date "--end-date" "${end_date}"
+
+  # Date ordering
+  if [[ -n "${start_date}" && -n "${end_date}" ]]; then
+    if [[ "${start_date}" > "${end_date}" ]]; then
+      _die "--start-date (${start_date}) must not be after --end-date (${end_date})"
+    fi
+  fi
+
+  # Enums
   [[ -n "${temperature_unit}" ]]   && _validate_enum "--temperature-unit" "${temperature_unit}" celsius fahrenheit
   [[ -n "${wind_speed_unit}" ]]    && _validate_enum "--wind-speed-unit" "${wind_speed_unit}" kmh ms mph kn
   [[ -n "${precipitation_unit}" ]] && _validate_enum "--precipitation-unit" "${precipitation_unit}" mm inch
+  [[ -n "${cell_selection}" ]]     && _validate_enum "--cell-selection" "${cell_selection}" land sea nearest
 
   # Cross-category param validation
-  [[ -n "${hourly_params}" ]]  && _validate_weather_params "hourly" "${hourly_params}"
-  [[ -n "${daily_params}" ]]   && _validate_weather_params "daily" "${daily_params}"
-  [[ -n "${current_params}" ]] && _validate_weather_params "current" "${current_params}"
+  [[ -n "${hourly_params}" ]] && _validate_history_params "hourly" "${hourly_params}"
+  [[ -n "${daily_params}" ]]  && _validate_history_params "daily" "${daily_params}"
 
   return 0
 }
@@ -199,18 +183,21 @@ _validate_weather_inputs() {
 # ---------------------------------------------------------------------------
 # Human-friendly output
 # ---------------------------------------------------------------------------
-_weather_output_human() {
+_history_output_human() {
   local json="$1" loc_name="${2:-}" loc_country="${3:-}"
+  local start_date="$4" end_date="$5"
   _init_colors
 
   echo "${json}" | jq -r \
     --arg name "${loc_name}" \
     --arg country "${loc_country}" \
+    --arg sdate "${start_date}" \
+    --arg edate "${end_date}" \
     --arg B "${C_BOLD}" --arg D "${C_DIM}" \
     --arg R "${C_RESET}" --arg CB "${C_BLUE}" \
     "${JQ_LIB}"'
     [ fmt_loc_header($name; $country),
-      fmt_current,
+      ("\n   📅 Historical: " + $B + $sdate + $R + " → " + $B + $edate + $R),
       fmt_hourly,
       fmt_daily
     ] | map(select(. != null and . != "")) | join("\n")
@@ -220,26 +207,25 @@ _weather_output_human() {
 # ---------------------------------------------------------------------------
 # Porcelain output
 # ---------------------------------------------------------------------------
-_weather_output_porcelain() {
+_history_output_porcelain() {
   local json="$1"
   echo "${json}" | jq -r "${JQ_LIB}"'
-    [porcelain_meta, porcelain_current, porcelain_hourly, porcelain_daily] | .[]
+    [porcelain_meta, porcelain_hourly, porcelain_daily] | .[]
   '
 }
 
 # ---------------------------------------------------------------------------
 # Command entry point
 # ---------------------------------------------------------------------------
-cmd_weather() {
+cmd_history() {
   local lat="" lon="" city="" country=""
-  local current="false" forecast_days="${DEFAULT_FORECAST_DAYS}"
-  local past_days="${DEFAULT_PAST_DAYS}"
-  local hourly_params="" daily_params="" current_params=""
-  local temperature_unit="${DEFAULT_TEMPERATURE_UNIT}"
-  local wind_speed_unit="${DEFAULT_WIND_SPEED_UNIT}"
-  local precipitation_unit="${DEFAULT_PRECIPITATION_UNIT}"
-  local timezone="${DEFAULT_TIMEZONE}"
-  local model=""
+  local start_date="" end_date=""
+  local hourly_params="" daily_params=""
+  local temperature_unit="${DEFAULT_HISTORY_TEMPERATURE_UNIT}"
+  local wind_speed_unit="${DEFAULT_HISTORY_WIND_SPEED_UNIT}"
+  local precipitation_unit="${DEFAULT_HISTORY_PRECIPITATION_UNIT}"
+  local timezone="${DEFAULT_HISTORY_TIMEZONE}"
+  local model="" cell_selection=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -247,22 +233,21 @@ cmd_weather() {
       --lon=*)              lon=$(_extract_value "$1") ;;
       --city=*)             city=$(_extract_value "$1") ;;
       --country=*)          country=$(_extract_value "$1") ;;
-      --current)            current="true" ;;
-      --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
-      --past-days=*)        past_days=$(_extract_value "$1") ;;
+      --start-date=*)       start_date=$(_extract_value "$1") ;;
+      --end-date=*)         end_date=$(_extract_value "$1") ;;
       --hourly-params=*)    hourly_params=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
-      --current-params=*)   current_params=$(_extract_value "$1") ;;
       --temperature-unit=*) temperature_unit=$(_extract_value "$1") ;;
       --wind-speed-unit=*)  wind_speed_unit=$(_extract_value "$1") ;;
       --precipitation-unit=*) precipitation_unit=$(_extract_value "$1") ;;
       --timezone=*)         timezone=$(_extract_value "$1") ;;
       --model=*)            model=$(_extract_value "$1") ;;
+      --cell-selection=*)   cell_selection=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
-      --help)               _weather_help; return 0 ;;
-      *)                    _die_usage "weather: unknown option: $1" ;;
+      --help)               _history_help; return 0 ;;
+      *)                    _die_usage "history: unknown option: $1" ;;
     esac
     shift
   done
@@ -272,10 +257,19 @@ cmd_weather() {
   # -----------------------------------------------------------------------
   # Validate inputs
   # -----------------------------------------------------------------------
-  _validate_weather_inputs \
-    "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
+  if [[ -z "${start_date}" ]]; then
+    _history_help >&2
+    _die_usage "missing required argument: --start-date"
+  fi
+  if [[ -z "${end_date}" ]]; then
+    _history_help >&2
+    _die_usage "missing required argument: --end-date"
+  fi
+
+  _validate_history_inputs \
+    "${lat}" "${lon}" "${start_date}" "${end_date}" \
     "${temperature_unit}" "${wind_speed_unit}" "${precipitation_unit}" \
-    "${hourly_params}" "${daily_params}" "${current_params}"
+    "${cell_selection}" "${hourly_params}" "${daily_params}"
 
   # -----------------------------------------------------------------------
   # Resolve location
@@ -293,55 +287,41 @@ cmd_weather() {
   fi
 
   if [[ -z "${lat}" || -z "${lon}" ]]; then
-    _weather_help >&2
+    _history_help >&2
     _die_usage "location required: use --lat/--lon or --city"
   fi
 
   # -----------------------------------------------------------------------
-  # Determine what data to fetch
+  # Default params
   # -----------------------------------------------------------------------
-  local has_data_selection="false"
-  if [[ "${current}" == "true" || -n "${hourly_params}" || -n "${daily_params}" || -n "${forecast_days}" ]]; then
-    has_data_selection="true"
-  fi
-
-  if [[ "${current}" == "true" && -z "${current_params}" ]]; then
-    current_params="${DEFAULT_CURRENT_PARAMS}"
-  fi
-
   if [[ -z "${hourly_params}" && -z "${daily_params}" ]]; then
-    if [[ "${current}" == "true" && -z "${forecast_days}" && "${has_data_selection}" == "true" ]]; then
-      : # current-only request
-    else
-      hourly_params="${DEFAULT_HOURLY_PARAMS}"
-    fi
+    hourly_params="${DEFAULT_HISTORY_HOURLY_PARAMS}"
   fi
 
   # -----------------------------------------------------------------------
   # Build query string
   # -----------------------------------------------------------------------
   local qs="latitude=${lat}&longitude=${lon}"
+  qs="${qs}&start_date=${start_date}&end_date=${end_date}"
 
-  [[ -n "${current_params}" ]]      && qs="${qs}&current=${current_params}"
   [[ -n "${hourly_params}" ]]       && qs="${qs}&hourly=${hourly_params}"
   [[ -n "${daily_params}" ]]        && qs="${qs}&daily=${daily_params}"
-  [[ -n "${forecast_days}" ]]       && qs="${qs}&forecast_days=${forecast_days}"
-  [[ -n "${past_days}" ]]           && qs="${qs}&past_days=${past_days}"
   [[ -n "${timezone}" ]]            && qs="${qs}&timezone=${timezone}"
   [[ -n "${temperature_unit}" ]]    && qs="${qs}&temperature_unit=${temperature_unit}"
   [[ -n "${wind_speed_unit}" ]]     && qs="${qs}&wind_speed_unit=${wind_speed_unit}"
   [[ -n "${precipitation_unit}" ]]  && qs="${qs}&precipitation_unit=${precipitation_unit}"
   [[ -n "${model}" ]]               && qs="${qs}&models=${model}"
+  [[ -n "${cell_selection}" ]]      && qs="${qs}&cell_selection=${cell_selection}"
 
   # -----------------------------------------------------------------------
   # Request + output
   # -----------------------------------------------------------------------
   local response
-  response=$(_request "${BASE_URL_FORECAST}" "${qs}")
+  response=$(_request "${BASE_URL_HISTORICAL}" "${qs}")
 
   case "${OUTPUT_FORMAT}" in
     raw)       _output_raw "${response}" ;;
-    porcelain) _weather_output_porcelain "${response}" ;;
-    *)         _weather_output_human "${response}" "${loc_name}" "${loc_country}" ;;
+    porcelain) _history_output_porcelain "${response}" ;;
+    *)         _history_output_human "${response}" "${loc_name}" "${loc_country}" "${start_date}" "${end_date}" ;;
   esac
 }

@@ -126,6 +126,192 @@ def fmt_loc_header($name; $country):
   "\(.longitude | abs | round2)°\(if .longitude >= 0 then "E" else "W" end)" +
   "\n   \(.timezone // "GMT") (\(.timezone_abbreviation // ""))" +
   (if .elevation then " · Elevation: \(.elevation)m" else "" end);
+
+# ── Human: format one hourly row (input: a zipped row object) ────────
+def fmt_hourly_row($units):
+  .time[11:16] as $time |
+  . as $row |
+  "   " + $D + $time + $R + "  " + ([
+    (if $row.temperature_2m != null then
+      $B + "\($row.temperature_2m)°" + $R +
+      (if $row.apparent_temperature != null then
+        " (feels \($row.apparent_temperature)°)" else "" end)
+    else null end),
+    (if $row.weather_code != null then
+      ($row.weather_code | wmo_text) else null end),
+    (if $row.relative_humidity_2m != null then
+      "💧\($row.relative_humidity_2m)%" else null end),
+    (if $row.precipitation != null then
+      "\($row.precipitation)\($units.precipitation // "mm")" +
+      (if $row.precipitation_probability != null then
+        " (\($row.precipitation_probability)%)" else "" end)
+    elif $row.precipitation_probability != null then
+      "💧\($row.precipitation_probability)% chance"
+    else null end),
+    (if $row.cloud_cover != null and $row.weather_code == null then
+      "☁️\($row.cloud_cover)%" else null end),
+    (if $row.wind_speed_10m != null then
+      "💨\($row.wind_speed_10m)" +
+      (if $units.wind_speed_10m then " \($units.wind_speed_10m)" else "" end) +
+      (if $row.wind_direction_10m != null then
+        " \($row.wind_direction_10m | wind_dir)" else "" end)
+    else null end),
+    ($row | to_entries | map(
+      select(.key | IN("time","temperature_2m","apparent_temperature","weather_code",
+        "relative_humidity_2m","precipitation","precipitation_probability",
+        "cloud_cover","wind_speed_10m","wind_direction_10m") | not) |
+      "\(.key | gsub("_"; " ")): \(.value // "—")"
+    ) | if length > 0 then join(", ") else null end)
+  ] | map(select(. != null and . != "")) | join(" · "));
+
+# ── Human: hourly section grouped by day ─────────────────────────────
+def fmt_hourly:
+  if .hourly then
+    .hourly_units as $units |
+    zip_hourly | group_by(.time[:10]) |
+    map(
+      .[0].time[:10] as $date |
+      "\n" + $B + $CB + "📅 " + ($date | day_label) + $R + "\n" +
+      (map(fmt_hourly_row($units)) | join("\n"))
+    ) | join("\n")
+  else "" end;
+
+# ── Human: daily section ─────────────────────────────────────────────
+def fmt_daily:
+  if .daily then
+    .daily_units as $units |
+    zip_daily | map(
+      .time as $date | . as $row |
+      "\n" + $B + "📅 " + ($date | day_label) + $R +
+      ([
+        (if $row.temperature_2m_max != null and $row.temperature_2m_min != null then
+          "🌡  \($row.temperature_2m_min)°→\($row.temperature_2m_max)°" +
+          (if $row.temperature_2m_mean != null then
+            " (avg \($row.temperature_2m_mean)°)" else "" end)
+        elif $row.temperature_2m_max != null then "🌡  max \($row.temperature_2m_max)°"
+        elif $row.temperature_2m_min != null then "🌡  min \($row.temperature_2m_min)°"
+        elif $row.temperature_2m_mean != null then "🌡  avg \($row.temperature_2m_mean)°"
+        else null end),
+        (if $row.weather_code != null then
+          ($row.weather_code | wmo_emoji) + " " + ($row.weather_code | wmo_text)
+        else null end),
+        (if $row.precipitation_sum != null then
+          "🌧  \($row.precipitation_sum)\($units.precipitation_sum // "mm")" +
+          (if $row.precipitation_probability_max != null then
+            " (\($row.precipitation_probability_max)%)" else "" end)
+        else null end),
+        (if $row.wind_speed_10m_max != null then
+          "💨 max \($row.wind_speed_10m_max)\($units.wind_speed_10m_max // "km/h")" +
+          (if $row.wind_gusts_10m_max != null then
+            ", gusts \($row.wind_gusts_10m_max)" else "" end)
+        else null end),
+        (if $row.sunrise != null and $row.sunset != null then
+          "🌅 \($row.sunrise[11:16])→\($row.sunset[11:16])"
+        else null end),
+        ($row | to_entries | map(
+          select(.key | IN("time","temperature_2m_max","temperature_2m_min",
+            "temperature_2m_mean","apparent_temperature_max","apparent_temperature_min",
+            "apparent_temperature_mean","weather_code","precipitation_sum",
+            "precipitation_probability_max","wind_speed_10m_max","wind_gusts_10m_max",
+            "sunrise","sunset") | not) |
+          "\(.key | gsub("_"; " ")): \(.value // "—")"
+        ) | if length > 0 then join(" · ") else null end)
+      ] | map(select(. != null and . != "")) | map("   " + .) | join("\n"))
+    ) | join("\n")
+  else "" end;
+
+# ── Human: current conditions ────────────────────────────────────────
+def fmt_current:
+  if .current then
+    .current as $c | .current_units as $u |
+    "\n" + $B + "⏱  Now" + $R + " — \($c.time // "now")\n" +
+    (if $c.temperature_2m != null then
+      "\n   🌡  " + $B + "\($c.temperature_2m)\($u.temperature_2m // "°C")" + $R +
+      (if $c.apparent_temperature != null then
+        " (feels like \($c.apparent_temperature)\($u.apparent_temperature // "°C"))"
+      else "" end) else "" end) +
+    (if $c.relative_humidity_2m != null then
+      "\n   💧 \($c.relative_humidity_2m)% humidity" else "" end) +
+    (if $c.weather_code != null then
+      "\n   " + ($c.weather_code | wmo_emoji) + " " + $B +
+      ($c.weather_code | wmo_text) + $R +
+      (if $c.cloud_cover != null then " (\($c.cloud_cover)% clouds)" else "" end)
+    elif $c.cloud_cover != null then
+      "\n   ☁️  \($c.cloud_cover)% clouds" else "" end) +
+    (if $c.wind_speed_10m != null then
+      "\n   💨 \($c.wind_speed_10m) \($u.wind_speed_10m // "km/h")" +
+      (if $c.wind_direction_10m != null then
+        " \($c.wind_direction_10m | wind_dir)" else "" end) +
+      (if $c.wind_gusts_10m != null then
+        ", gusts \($c.wind_gusts_10m) \($u.wind_gusts_10m // $u.wind_speed_10m // "km/h")"
+      else "" end) else "" end) +
+    (if $c.is_day != null then
+      "\n   " + (if $c.is_day == 1 then "☀️  Day" else "🌙 Night" end)
+    else "" end) +
+    (if $c.precipitation != null and ($c.precipitation > 0) then
+      "\n   🌧  \($c.precipitation)\($u.precipitation // "mm")" +
+      (if $c.rain != null and ($c.rain > 0) then
+        " (rain: \($c.rain)\($u.rain // "mm"))" else "" end) +
+      (if $c.snowfall != null and ($c.snowfall > 0) then
+        " (snow: \($c.snowfall)\($u.snowfall // "cm"))" else "" end)
+    else "" end) +
+    (if $c.surface_pressure != null then
+      "\n   📊 \($c.surface_pressure) \($u.surface_pressure // "hPa")"
+    elif $c.pressure_msl != null then
+      "\n   📊 \($c.pressure_msl) \($u.pressure_msl // "hPa")"
+    else "" end) +
+    ($c | to_entries | map(
+      select(.key | IN("time","interval","temperature_2m","apparent_temperature",
+        "weather_code","relative_humidity_2m","cloud_cover","wind_speed_10m",
+        "wind_direction_10m","wind_gusts_10m","is_day","precipitation","rain",
+        "showers","snowfall","pressure_msl","surface_pressure") | not) |
+      "\n   \(.key | gsub("_"; " ")): \(.value)"
+    ) | join(""))
+  else "" end;
+
+# ── Porcelain: location metadata ─────────────────────────────────────
+def porcelain_meta:
+  "latitude=\(.latitude)",
+  "longitude=\(.longitude)",
+  (if .elevation then "elevation=\(.elevation)" else empty end),
+  "timezone=\(.timezone // "GMT")",
+  "timezone_abbreviation=\(.timezone_abbreviation // "")",
+  "utc_offset_seconds=\(.utc_offset_seconds // 0)";
+
+# ── Porcelain: current conditions ────────────────────────────────────
+def porcelain_current:
+  (if .current then
+    (.current | to_entries[] | "current.\(.key)=\(.value)")
+  else empty end),
+  (if .current_units then
+    (.current_units | to_entries[] | "current_units.\(.key)=\(.value)")
+  else empty end);
+
+# ── Porcelain: hourly data + units ───────────────────────────────────
+def porcelain_hourly:
+  (if .hourly then
+    .hourly as $h |
+    ($h | keys_unsorted | map(select(. != "time"))) as $vars |
+    range(0; ($h.time | length)) as $i |
+    $vars[] as $v |
+    "hourly.\($h.time[$i]).\($v)=\($h[$v][$i])"
+  else empty end),
+  (if .hourly_units then
+    (.hourly_units | to_entries[] | "hourly_units.\(.key)=\(.value)")
+  else empty end);
+
+# ── Porcelain: daily data + units ────────────────────────────────────
+def porcelain_daily:
+  (if .daily then
+    .daily as $d |
+    ($d | keys_unsorted | map(select(. != "time"))) as $vars |
+    range(0; ($d.time | length)) as $i |
+    $vars[] as $v |
+    "daily.\($d.time[$i]).\($v)=\($d[$v][$i])"
+  else empty end),
+  (if .daily_units then
+    (.daily_units | to_entries[] | "daily_units.\(.key)=\(.value)")
+  else empty end);
 JQEOF
 
 # ---------------------------------------------------------------------------
