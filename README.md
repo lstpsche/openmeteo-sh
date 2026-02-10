@@ -98,8 +98,8 @@ This also installs bash/zsh tab completions automatically. The CLI command is `o
 Download the `.deb` from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
 
 ```bash
-curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/v0.1.0/openmeteo-sh_0.1.0-1_all.deb
-sudo dpkg -i openmeteo-sh_0.1.0-1_all.deb
+curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.0.0/openmeteo-sh_1.0.0-1_all.deb
+sudo dpkg -i openmeteo-sh_1.0.0-1_all.deb
 sudo apt-get install -f   # install dependencies (jq, curl)
 ```
 
@@ -648,8 +648,6 @@ openmeteo-sh/
   completions/
     openmeteo.bash       # bash tab-completion
     openmeteo.zsh        # zsh tab-completion
-  Formula/
-    openmeteo.rb         # Homebrew formula template
   debian/                # Debian packaging scaffolding
 ```
 

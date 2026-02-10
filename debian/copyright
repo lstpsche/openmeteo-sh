@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: openmeteo
-Upstream-Contact: Nikita Shkoda <nikita@lstpsche.dev>
-Source: https://github.com/lstpsche/openmeteo
+Upstream-Name: openmeteo-sh
+Upstream-Contact: Nikita Shkoda <lstpsche@gmail.com>
+Source: https://github.com/lstpsche/openmeteo-sh
 
 Files: *
 Copyright: 2026 Nikita Shkoda

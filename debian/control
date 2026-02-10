@@ -1,13 +1,13 @@
-Source: openmeteo
+Source: openmeteo-sh
 Section: utils
 Priority: optional
-Maintainer: Nikita Shkoda <nikita@lstpsche.dev>
+Maintainer: Nikita Shkoda <lstpsche@gmail.com>
 Build-Depends: debhelper-compat (= 13)
 Standards-Version: 4.6.2
-Homepage: https://github.com/lstpsche/openmeteo
+Homepage: https://github.com/lstpsche/openmeteo-sh
 Rules-Requires-Root: no
 
-Package: openmeteo
+Package: openmeteo-sh
 Architecture: all
 Depends: bash (>= 4.0), jq, curl, ${misc:Depends}
 Description: Fast, lightweight CLI for the entire Open-Meteo API suite

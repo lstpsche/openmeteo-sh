@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # core.sh -- shared utilities for openmeteo CLI
 
-OPENMETEO_VERSION="0.1.0"
+OPENMETEO_VERSION="1.0.0"
 
 # Base URLs (no trailing slash)
 BASE_URL_FORECAST="https://api.open-meteo.com/v1/forecast"
