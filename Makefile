@@ -5,7 +5,10 @@ LIBEXEC ?= $(PREFIX)/libexec/openmeteo
 COMPDIR_BASH ?= $(PREFIX)/share/bash-completion/completions
 COMPDIR_ZSH  ?= $(PREFIX)/share/zsh/site-functions
 
-.PHONY: install uninstall
+.PHONY: all install uninstall
+
+all:
+	@: # nothing to build — pure shell project
 
 install:
 	@echo "Installing openmeteo to $(DESTDIR)$(LIBEXEC) ..."
