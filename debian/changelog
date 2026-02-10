@@ -1,3 +1,12 @@
+openmeteo-sh (1.2.0-1) stable; urgency=low
+
+  * New --llm output format: compact TSV output optimized for AI agents.
+    Resolves weather codes to text, embeds units in headers, minimal tokens.
+  * Updated porcelain format review (no changes needed, confirmed best practices).
+  * Updated completions (bash/zsh) with --llm flag.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Mon, 09 Feb 2026 23:00:00 +0000
+
 openmeteo-sh (1.1.0-1) stable; urgency=low
 
   * Add --daily / --hourly flags for selective forecast output.

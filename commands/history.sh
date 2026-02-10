@@ -44,6 +44,7 @@ Model:
 Other:
   --cell-selection=MODE   Grid cell selection: land (default), sea, nearest
   --porcelain             Machine-parseable key=value output
+  --llm                   Compact TSV output for AI agents
   --raw                   Raw JSON from API
   --help                  Show this help
 
@@ -205,6 +206,24 @@ _history_output_human() {
 }
 
 # ---------------------------------------------------------------------------
+# LLM output
+# ---------------------------------------------------------------------------
+_history_output_llm() {
+  local json="$1" loc_name="${2:-}" loc_country="${3:-}"
+  echo "${json}" | jq -r \
+    --arg name "${loc_name}" \
+    --arg country "${loc_country}" \
+    "${JQ_LIB}"'
+    llm_meta,
+    (if $name != "" then
+      "location:" + $name + (if $country != "" then "," + $country else "" end)
+    else empty end),
+    llm_hourly,
+    llm_daily
+  '
+}
+
+# ---------------------------------------------------------------------------
 # Porcelain output
 # ---------------------------------------------------------------------------
 _history_output_porcelain() {
@@ -245,6 +264,7 @@ cmd_history() {
       --cell-selection=*)   cell_selection=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
+      --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
       --verbose)            OPENMETEO_VERBOSE="true" ;;
       --help)               _history_help; return 0 ;;
@@ -321,6 +341,7 @@ cmd_history() {
   case "${OUTPUT_FORMAT}" in
     raw)       _output_raw "${response}" ;;
     porcelain) _history_output_porcelain "${response}" ;;
+    llm)       _history_output_llm "${response}" "${loc_name}" "${loc_country}" ;;
     *)         _history_output_human "${response}" "${loc_name}" "${loc_country}" "${start_date}" "${end_date}" ;;
   esac
 }

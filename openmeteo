@@ -50,6 +50,7 @@ Commands:
 Output modes:
   (default)       Human-friendly: colored, with emojis, grouped by day
   --porcelain     Machine-parseable: flat key=value lines for scripts/agents
+  --llm           Compact TSV tables, minimal tokens, for AI agents
   --raw           Raw JSON from the API (for piping to jq, etc.)
 
 Global options:

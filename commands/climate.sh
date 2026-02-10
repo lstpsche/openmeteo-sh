@@ -65,6 +65,7 @@ Other:
   --disable-bias-correction   Disable statistical downscaling with ERA5-Land
   --cell-selection=MODE       Grid cell selection: land (default), sea, nearest
   --porcelain                 Machine-parseable key=value output
+  --llm                       Compact TSV output for AI agents
   --raw                       Raw JSON from API
   --help                      Show this help
 
@@ -464,6 +465,23 @@ _climate_output_human() {
 }
 
 # ---------------------------------------------------------------------------
+# LLM output
+# ---------------------------------------------------------------------------
+_climate_output_llm() {
+  local json="$1" loc_name="${2:-}" loc_country="${3:-}"
+  echo "${json}" | jq -r \
+    --arg name "${loc_name}" \
+    --arg country "${loc_country}" \
+    "${JQ_LIB}"'
+    llm_meta,
+    (if $name != "" then
+      "location:" + $name + (if $country != "" then "," + $country else "" end)
+    else empty end),
+    llm_daily
+  '
+}
+
+# ---------------------------------------------------------------------------
 # Porcelain output
 # ---------------------------------------------------------------------------
 _climate_output_porcelain() {
@@ -504,6 +522,7 @@ cmd_climate() {
       --disable-bias-correction) disable_bias_correction="true" ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
+      --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
       --verbose)            OPENMETEO_VERBOSE="true" ;;
       --help)               _climate_help; return 0 ;;
@@ -584,6 +603,7 @@ cmd_climate() {
   case "${OUTPUT_FORMAT}" in
     raw)       _output_raw "${response}" ;;
     porcelain) _climate_output_porcelain "${response}" ;;
+    llm)       _climate_output_llm "${response}" "${loc_name}" "${loc_country}" ;;
     *)         _climate_output_human "${response}" "${loc_name}" "${loc_country}" "${models}" "${start_date}" "${end_date}" ;;
   esac
 }

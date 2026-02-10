@@ -23,7 +23,7 @@ $ openmeteo weather --current --city=London
 ## Features
 
 - **10 API subcommands** covering every Open-Meteo endpoint
-- **Three output formats** — human-friendly (default), porcelain (for scripts), raw JSON
+- **Four output formats** — human-friendly (default), porcelain (for scripts), LLM (compact TSV for AI agents), raw JSON
 - **City name resolution** — use `--city=London` instead of lat/lon
 - **Verbose input validation** — helpful error messages before any API call
 - **Commercial API key support** — via env var or `--api-key` flag
@@ -108,8 +108,8 @@ sudo apt install openmeteo-sh
 Or download a `.deb` directly from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
 
 ```bash
-curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.0.0/openmeteo-sh_1.0.0-1_all.deb
-sudo dpkg -i openmeteo-sh_1.0.0-1_all.deb
+curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.2.0/openmeteo-sh_1.2.0-1_all.deb
+sudo dpkg -i openmeteo-sh_1.2.0-1_all.deb
 sudo apt-get install -f   # install dependencies (jq, curl)
 ```
 
@@ -185,6 +185,9 @@ openmeteo air-quality --current --city=Tokyo
 # Machine-readable output (for scripts/agents)
 openmeteo weather --current --city=London --porcelain
 
+# Compact output for AI agents / LLMs (minimal tokens)
+openmeteo weather --current --forecast-days=2 --city=London --llm
+
 # Raw JSON (for piping to jq)
 openmeteo weather --current --city=London --raw | jq '.current.temperature_2m'
 ```
@@ -203,7 +206,9 @@ These flags work with every subcommand:
 |-----------------|-------------------------------------------------------------|
 | `--api-key=KEY` | Open-Meteo commercial API key (overrides `OPENMETEO_API_KEY`) |
 | `--porcelain`   | Machine-parseable `key=value` output                        |
+| `--llm`         | Compact TSV output optimized for AI agents (minimal tokens) |
 | `--raw`         | Raw JSON from the API                                       |
+| `--verbose`     | Show resolved locations and full request URLs               |
 | `--help`        | Show help for the command                                   |
 | `--version`     | Show version                                                |
 
@@ -466,6 +471,34 @@ hourly.2026-02-09T00:00.temperature_2m=7.2
 hourly.2026-02-09T01:00.temperature_2m=6.8
 ```
 
+### LLM (`--llm`)
+
+Compact, token-efficient output designed for AI agents and LLM tool use. Uses TSV (tab-separated) tables with a header row — columns are declared once with units, then data streams as rows. This reduces token count by ~90% compared to porcelain for time-series data.
+
+Inspired by [TOON](https://toonformat.dev/) (Token-Oriented Object Notation) principles, but implemented in pure `jq` with no extra dependencies.
+
+```
+$ openmeteo weather --current --forecast-days=1 --city=London --llm
+# meta
+lat:51.5 lon:-0.120000124 elev:23.0m tz:Europe/London(GMT)
+location:London,United Kingdom
+# current 2026-02-10T18:45
+temperature_2m:9.8°C relative_humidity_2m:90% apparent_temperature:8.3°C is_day:0 weather_code:61(Light rain) cloud_cover:100% wind_speed_10m:7.6km/h wind_direction_10m:85° wind_gusts_10m:17.3km/h
+
+# hourly
+time	temperature_2m(°C)	relative_humidity_2m(%)	...
+2026-02-10T00:00	7.7	88	...
+2026-02-10T01:00	7.8	89	...
+```
+
+Structure:
+- `# meta` — location coordinates, elevation, timezone (single compact line)
+- `# current` — current conditions as `key:value` pairs with units
+- `# hourly` / `# daily` — TSV table: header row with column names and units, then one data row per time step
+- Weather codes are resolved to human-readable text (e.g., `Light rain` instead of `61`)
+
+All commands support `--llm`. Works with `geo` (TSV result table) and `elevation` (TSV lat/lon/elevation table) too.
+
 ### Raw JSON (`--raw`)
 
 Unmodified JSON from the Open-Meteo API. Useful for debugging or piping into `jq`.
@@ -557,6 +590,13 @@ pm25=$(openmeteo air-quality --current --city=Delhi \
 echo "Current PM2.5 in Delhi: ${pm25} µg/m³"
 ```
 
+### Token-efficient weather summary for an AI agent
+
+```bash
+# An LLM agent skill can fetch compact weather context in ~150 tokens:
+openmeteo weather --current --forecast-days=1 --city=Berlin --llm
+```
+
 ### Get raw JSON and process with jq
 
 ```bash
@@ -644,7 +684,7 @@ The Geocoding API didn't find a match. Try:
 
 ### Output looks garbled / no colors
 
-Your terminal may not support ANSI escape codes or UTF-8 emojis. Use `--porcelain` or `--raw` for plain output. If piping output, colors are automatically disabled.
+Your terminal may not support ANSI escape codes or UTF-8 emojis. Use `--porcelain`, `--llm`, or `--raw` for plain output. If piping output, colors are automatically disabled.
 
 ### `--daily-params` has no effect (air quality)
 
@@ -705,7 +745,7 @@ openmeteo-sh/
 1. Create `commands/<name>.sh` with a `cmd_<name>` function.
 2. Add a `case` entry in the `openmeteo` entrypoint.
 3. Add help text to the main `--help` output.
-4. Implement all three output formats (human, porcelain, raw).
+4. Implement all four output formats (human, porcelain, llm, raw).
 5. Add verbose input validation before API calls.
 6. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
 7. Test all success and failure paths manually.

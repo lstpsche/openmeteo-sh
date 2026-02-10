@@ -19,6 +19,7 @@ Options:
 
 Output:
   --porcelain       Machine-parseable key=value output
+  --llm             Compact TSV output for AI agents
   --raw             Raw JSON from API
   --help            Show this help
 
@@ -73,6 +74,34 @@ JQFILTER
 }
 
 # ---------------------------------------------------------------------------
+# LLM output
+# ---------------------------------------------------------------------------
+_geo_output_llm() {
+  local json="$1"
+
+  local filter
+  read -r -d '' filter <<'JQFILTER' || true
+"# results",
+"name\tadmin1\tcountry\tcountry_code\tlat\tlon\televation(m)\tpopulation\ttimezone",
+(.results[] |
+  [
+    (.name // ""),
+    (.admin1 // ""),
+    (.country // ""),
+    (.country_code // ""),
+    (.latitude // "" | tostring),
+    (.longitude // "" | tostring),
+    (.elevation // "" | tostring),
+    (.population // "" | tostring),
+    (.timezone // "")
+  ] | join("\t")
+)
+JQFILTER
+
+  echo "${json}" | jq -r "${filter}"
+}
+
+# ---------------------------------------------------------------------------
 # Porcelain output
 # ---------------------------------------------------------------------------
 _geo_output_porcelain() {
@@ -110,6 +139,7 @@ cmd_geo() {
       --country=*)  country=$(_extract_value "$1") ;;
       --api-key=*)  API_KEY=$(_extract_value "$1") ;;
       --porcelain)  OUTPUT_FORMAT="porcelain" ;;
+      --llm)        OUTPUT_FORMAT="llm" ;;
       --raw)        OUTPUT_FORMAT="raw" ;;
       --verbose)    OPENMETEO_VERBOSE="true" ;;
       --help)       _geo_help; return 0 ;;
@@ -152,6 +182,7 @@ cmd_geo() {
   case "${OUTPUT_FORMAT}" in
     raw)       _output_raw "${response}" ;;
     porcelain) _geo_output_porcelain "${response}" ;;
+    llm)       _geo_output_llm "${response}" ;;
     *)         _geo_output_human "${response}" ;;
   esac
 }

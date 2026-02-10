@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # output.sh -- output formatting for openmeteo CLI
 #
-# Three output modes:
+# Four output modes:
 #   human     (default) -- emoji, colors, grouped-by-day, readable
 #   porcelain           -- flat key=value, one per line, for scripts/agents
+#   llm                 -- compact TSV tables, minimal tokens, for AI agents
 #   raw                 -- unmodified JSON from API
 
 # ---------------------------------------------------------------------------
@@ -268,6 +269,73 @@ def fmt_current:
       "\n   \(.key | gsub("_"; " ")): \(.value)"
     ) | join(""))
   else "" end;
+
+# ── LLM: compact token-efficient output for AI agents ────────────────
+# Uses TSV tables with header rows (columns declared once, no key repetition).
+# Weather codes resolved to text. Units embedded in column headers.
+
+def llm_tsv_val:
+  if . == null then "" else tostring end;
+
+def llm_meta:
+  "# meta",
+  ("lat:" + (.latitude | tostring) + " lon:" + (.longitude | tostring) +
+   (if .elevation then " elev:" + (.elevation | tostring) + "m" else "" end) +
+   " tz:" + (.timezone // "GMT") + "(" + (.timezone_abbreviation // "") + ")");
+
+def llm_current:
+  if .current then
+    (.current_units // {}) as $u | .current as $c |
+    "# current " + ($c.time // "now"),
+    ($c | to_entries | map(
+      select(.key | IN("time","interval") | not) |
+      .key + ":" + (
+        if .key == "weather_code" then
+          (.value | tostring) + "(" + (.value | wmo_text) + ")"
+        else
+          (.value // "" | tostring) +
+          (if $u[.key] and ($u[.key] | IN("","iso8601","seconds","wmo code") | not)
+           then $u[.key] else "" end)
+        end
+      )
+    ) | join(" "))
+  else empty end;
+
+def llm_hourly:
+  if .hourly then
+    .hourly as $h | (.hourly_units // {}) as $u |
+    ($h | keys_unsorted | map(select(. != "time"))) as $vars |
+    "",
+    "# hourly",
+    (["time"] + [$vars[] as $v |
+      if $v == "weather_code" then "weather"
+      else $v + (if $u[$v] and ($u[$v] | IN("","iso8601","wmo code") | not)
+                 then "(" + $u[$v] + ")" else "" end) end
+    ] | join("\t")),
+    (range(0; ($h.time | length)) | . as $i |
+      ([$h.time[$i]] + [$vars[] as $v |
+        if $v == "weather_code" then ($h[$v][$i] | wmo_text)
+        else ($h[$v][$i] | llm_tsv_val) end
+      ]) | join("\t"))
+  else empty end;
+
+def llm_daily:
+  if .daily then
+    .daily as $d | (.daily_units // {}) as $u |
+    ($d | keys_unsorted | map(select(. != "time"))) as $vars |
+    "",
+    "# daily",
+    (["date"] + [$vars[] as $v |
+      if $v == "weather_code" then "weather"
+      else $v + (if $u[$v] and ($u[$v] | IN("","iso8601","wmo code") | not)
+                 then "(" + $u[$v] + ")" else "" end) end
+    ] | join("\t")),
+    (range(0; ($d.time | length)) | . as $i |
+      ([$d.time[$i]] + [$vars[] as $v |
+        if $v == "weather_code" then ($d[$v][$i] | wmo_text)
+        else ($d[$v][$i] | llm_tsv_val) end
+      ]) | join("\t"))
+  else empty end;
 
 # ── Porcelain: location metadata ─────────────────────────────────────
 def porcelain_meta:

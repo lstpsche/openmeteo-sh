@@ -25,6 +25,7 @@ Multiple coordinates:
 
 Output:
   --porcelain       Machine-parseable key=value output
+  --llm             Compact TSV output for AI agents
   --raw             Raw JSON from API
   --help            Show this help
 
@@ -164,6 +165,28 @@ _elevation_output_human() {
 }
 
 # ---------------------------------------------------------------------------
+# LLM output
+# ---------------------------------------------------------------------------
+_elevation_output_llm() {
+  local json="$1" lat_csv="$2" lon_csv="$3"
+
+  echo "${json}" | jq -r \
+    --arg lats "${lat_csv}" \
+    --arg lons "${lon_csv}" \
+    '
+    ($lats | split(",") | map(tonumber)) as $lat_arr |
+    ($lons | split(",") | map(tonumber)) as $lon_arr |
+    .elevation as $elevs |
+
+    "# elevation",
+    "lat\tlon\televation(m)",
+    ( range(0; ($elevs | length)) | . as $i |
+      "\($lat_arr[$i])\t\($lon_arr[$i])\t\(if $elevs[$i] == null or ($elevs[$i] | isnan) then "" else $elevs[$i] end)"
+    )
+    '
+}
+
+# ---------------------------------------------------------------------------
 # Porcelain output
 # ---------------------------------------------------------------------------
 _elevation_output_porcelain() {
@@ -202,6 +225,7 @@ cmd_elevation() {
       --country=*)   country=$(_extract_value "$1") ;;
       --api-key=*)   API_KEY=$(_extract_value "$1") ;;
       --porcelain)   OUTPUT_FORMAT="porcelain" ;;
+      --llm)         OUTPUT_FORMAT="llm" ;;
       --raw)         OUTPUT_FORMAT="raw" ;;
       --verbose)     OPENMETEO_VERBOSE="true" ;;
       --help)        _elevation_help; return 0 ;;
@@ -254,6 +278,7 @@ cmd_elevation() {
   case "${OUTPUT_FORMAT}" in
     raw)       _output_raw "${response}" ;;
     porcelain) _elevation_output_porcelain "${response}" "${lat}" "${lon}" ;;
+    llm)       _elevation_output_llm "${response}" "${lat}" "${lon}" ;;
     *)         _elevation_output_human "${response}" "${lat}" "${lon}" "${loc_name}" "${loc_country}" ;;
   esac
 }

@@ -21,6 +21,7 @@ _openmeteo() {
   _arguments -C \
     '--api-key=[OpenMeteo API key]:key' \
     '--porcelain[Machine-parseable output]' \
+    '--llm[Compact TSV output for AI agents]' \
     '--raw[Raw JSON output]' \
     '--verbose[Show resolved locations and request URLs]' \
     '--help[Show help]' \
@@ -57,6 +58,7 @@ _openmeteo() {
             '--model=[Weather model]:model' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -68,6 +70,7 @@ _openmeteo() {
             '--country=[Country filter]:code' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -89,6 +92,7 @@ _openmeteo() {
             '--cell-selection=[Grid cell selection]:mode:(land sea nearest)' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -112,6 +116,7 @@ _openmeteo() {
             '--cell-selection=[Grid cell selection]:mode:(land sea nearest)' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -132,6 +137,7 @@ _openmeteo() {
             '--disable-bias-correction[Disable statistical downscaling]' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -156,6 +162,7 @@ _openmeteo() {
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -178,6 +185,7 @@ _openmeteo() {
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -197,6 +205,7 @@ _openmeteo() {
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -208,6 +217,7 @@ _openmeteo() {
             '--country=[Country code]:code' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;
@@ -231,6 +241,7 @@ _openmeteo() {
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
             '--porcelain[Machine-parseable output]' \
+            '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
           ;;

@@ -7,7 +7,7 @@ _openmeteo() {
   _init_completion || return
 
   local commands="weather geo history ensemble climate marine air-quality flood elevation satellite"
-  local global_opts="--api-key= --porcelain --raw --verbose --help --version"
+  local global_opts="--api-key= --porcelain --llm --raw --verbose --help --version"
 
   # Determine the subcommand (first non-option word after "openmeteo")
   local subcmd=""
@@ -37,54 +37,54 @@ _openmeteo() {
             --forecast-days= --past-days= --start-date= --end-date=
             --hourly-params= --daily-params= --current-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --model= --api-key= --porcelain --raw --help"
+            --timezone= --model= --api-key= --porcelain --llm --raw --help"
       ;;
     geo)
-      opts="--search= --count= --language= --country= --api-key= --porcelain --raw --help"
+      opts="--search= --count= --language= --country= --api-key= --porcelain --llm --raw --help"
       ;;
     history)
       opts="--lat= --lon= --city= --country= --start-date= --end-date=
             --hourly-params= --daily-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --model= --cell-selection= --api-key= --porcelain --raw --help"
+            --timezone= --model= --cell-selection= --api-key= --porcelain --llm --raw --help"
       ;;
     ensemble)
       opts="--lat= --lon= --city= --country= --models= --hourly-params= --daily-params=
             --forecast-days= --past-days= --start-date= --end-date=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --cell-selection= --api-key= --porcelain --raw --help"
+            --timezone= --cell-selection= --api-key= --porcelain --llm --raw --help"
       ;;
     climate)
       opts="--lat= --lon= --city= --country= --start-date= --end-date=
             --models= --daily-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --cell-selection= --disable-bias-correction --api-key= --porcelain --raw --help"
+            --cell-selection= --disable-bias-correction --api-key= --porcelain --llm --raw --help"
       ;;
     marine)
       opts="--lat= --lon= --city= --country= --current --forecast-days= --past-days=
             --hourly-params= --daily-params= --current-params=
             --length-unit= --wind-speed-unit= --timezone= --model=
-            --cell-selection= --start-date= --end-date= --api-key= --porcelain --raw --help"
+            --cell-selection= --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
       ;;
     air-quality)
       opts="--lat= --lon= --city= --country= --current --forecast-days= --past-days=
             --hourly-params= --daily-params= --current-params=
             --domains= --timezone= --cell-selection= --start-date= --end-date=
-            --api-key= --porcelain --raw --help"
+            --api-key= --porcelain --llm --raw --help"
       ;;
     flood)
       opts="--lat= --lon= --city= --country= --forecast-days= --past-days=
             --daily-params= --model= --cell-selection= --ensemble
-            --start-date= --end-date= --api-key= --porcelain --raw --help"
+            --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
       ;;
     elevation)
-      opts="--lat= --lon= --city= --country= --api-key= --porcelain --raw --help"
+      opts="--lat= --lon= --city= --country= --api-key= --porcelain --llm --raw --help"
       ;;
     satellite)
       opts="--lat= --lon= --city= --country= --forecast-days= --past-days=
             --hourly-params= --daily-params= --model= --timezone=
             --cell-selection= --tilt= --azimuth= --temporal-resolution=
-            --start-date= --end-date= --api-key= --porcelain --raw --help"
+            --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
       ;;
   esac
 
