@@ -119,6 +119,33 @@ ln -s "$(pwd)/openmeteo" /usr/local/bin/openmeteo
 
 To uninstall a Makefile installation: `sudo make uninstall`
 
+### Updating
+
+```bash
+# Homebrew
+brew update && brew upgrade openmeteo-sh
+
+# Debian / Ubuntu
+curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/<VERSION>/openmeteo-sh_<VERSION>-1_all.deb
+sudo dpkg -i openmeteo-sh_<VERSION>-1_all.deb
+
+# From source
+cd openmeteo-sh && git pull && sudo make install
+```
+
+### Uninstalling
+
+```bash
+# Homebrew
+brew uninstall openmeteo-sh && brew untap lstpsche/tap
+
+# Debian / Ubuntu
+sudo apt remove openmeteo-sh
+
+# From source
+cd openmeteo-sh && sudo make uninstall
+```
+
 ---
 
 ## Quick Start
