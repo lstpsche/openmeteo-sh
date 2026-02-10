@@ -33,7 +33,8 @@ _openmeteo() {
   local opts=""
   case "$subcmd" in
     weather)
-      opts="--lat= --lon= --city= --country= --current --forecast-days= --past-days=
+      opts="--lat= --lon= --city= --country= --current --daily --hourly
+            --forecast-days= --past-days= --start-date= --end-date=
             --hourly-params= --daily-params= --current-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
             --timezone= --model= --api-key= --porcelain --raw --help"

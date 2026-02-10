@@ -23,12 +23,16 @@ Location (one of these is required):
   --lat=NUM         Latitude (WGS84)
   --lon=NUM         Longitude (WGS84)
   --city=NAME       City name (resolved via Geocoding API)
-  --country=CODE    Country filter for city resolution (e.g. GB, DE)
+  --country=CODE    ISO 3166-1 alpha-2 country filter (e.g. GB, DE, US)
 
 Data selection:
   --current               Include current weather conditions
+  --daily                 Include daily forecast (default params)
+  --hourly                Include hourly forecast (default params)
   --forecast-days=N       Forecast length in days (0-16, default: 7)
   --past-days=N           Include past days (0-92)
+  --start-date=YYYY-MM-DD  Start of custom date range (overrides forecast-days)
+  --end-date=YYYY-MM-DD    End of custom date range
   --hourly-params=LIST    Comma-separated hourly variables (has sensible defaults)
   --daily-params=LIST     Comma-separated daily variables (has sensible defaults)
   --current-params=LIST   Comma-separated current variables (has sensible defaults)
@@ -51,6 +55,10 @@ Examples:
   openmeteo weather --current --city=London
   openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
   openmeteo weather --current --forecast-days=2 --city=London --country=GB
+  openmeteo weather --daily --city=Vienna                 # daily only, default params
+  openmeteo weather --hourly --city=Vienna                # hourly only, default params
+  openmeteo weather --daily --hourly --city=Berlin        # both daily and hourly
+  openmeteo weather --start-date=2026-02-15 --end-date=2026-02-18 --city=London
   openmeteo weather --forecast-days=2 --city=Vienna \\
     --hourly-params=precipitation,precipitation_probability,weather_code
 EOF
@@ -175,13 +183,17 @@ _validate_weather_inputs() {
   local lat="$1" lon="$2" forecast_days="$3" past_days="$4"
   local temperature_unit="$5" wind_speed_unit="$6" precipitation_unit="$7"
   local hourly_params="$8" daily_params="$9"
-  local current_params="${10:-}"
+  local current_params="${10:-}" start_date="${11:-}" end_date="${12:-}"
 
   # Numeric values
   [[ -n "${lat}" ]]            && _validate_number "--lat" "${lat}"
   [[ -n "${lon}" ]]            && _validate_number "--lon" "${lon}"
   [[ -n "${forecast_days}" ]]  && _validate_integer "--forecast-days" "${forecast_days}" 0 16
   [[ -n "${past_days}" ]]      && _validate_integer "--past-days" "${past_days}" 0 92
+
+  # Date values
+  [[ -n "${start_date}" ]]     && _validate_date "--start-date" "${start_date}"
+  [[ -n "${end_date}" ]]       && _validate_date "--end-date" "${end_date}"
 
   # Enum values
   [[ -n "${temperature_unit}" ]]   && _validate_enum "--temperature-unit" "${temperature_unit}" celsius fahrenheit
@@ -234,7 +246,9 @@ cmd_weather() {
   local lat="" lon="" city="" country=""
   local current="false" forecast_days="${DEFAULT_FORECAST_DAYS}"
   local past_days="${DEFAULT_PAST_DAYS}"
+  local include_daily="false" include_hourly="false"
   local hourly_params="" daily_params="" current_params=""
+  local start_date="" end_date=""
   local temperature_unit="${DEFAULT_TEMPERATURE_UNIT}"
   local wind_speed_unit="${DEFAULT_WIND_SPEED_UNIT}"
   local precipitation_unit="${DEFAULT_PRECIPITATION_UNIT}"
@@ -248,8 +262,12 @@ cmd_weather() {
       --city=*)             city=$(_extract_value "$1") ;;
       --country=*)          country=$(_extract_value "$1") ;;
       --current)            current="true" ;;
+      --daily)              include_daily="true" ;;
+      --hourly)             include_hourly="true" ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
+      --start-date=*)       start_date=$(_extract_value "$1") ;;
+      --end-date=*)         end_date=$(_extract_value "$1") ;;
       --hourly-params=*)    hourly_params=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
       --current-params=*)   current_params=$(_extract_value "$1") ;;
@@ -276,7 +294,8 @@ cmd_weather() {
   _validate_weather_inputs \
     "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
     "${temperature_unit}" "${wind_speed_unit}" "${precipitation_unit}" \
-    "${hourly_params}" "${daily_params}" "${current_params}"
+    "${hourly_params}" "${daily_params}" "${current_params}" \
+    "${start_date}" "${end_date}"
 
   # -----------------------------------------------------------------------
   # Resolve location
@@ -299,18 +318,27 @@ cmd_weather() {
   # -----------------------------------------------------------------------
   # Determine what data to fetch
   # -----------------------------------------------------------------------
-  local has_data_selection="false"
-  if [[ "${current}" == "true" || -n "${hourly_params}" || -n "${daily_params}" || -n "${forecast_days}" ]]; then
-    has_data_selection="true"
+
+  # --daily flag → default daily params (unless custom --daily-params given)
+  if [[ "${include_daily}" == "true" && -z "${daily_params}" ]]; then
+    daily_params="${DEFAULT_DAILY_PARAMS}"
   fi
 
+  # --hourly flag → default hourly params (unless custom --hourly-params given)
+  if [[ "${include_hourly}" == "true" && -z "${hourly_params}" ]]; then
+    hourly_params="${DEFAULT_HOURLY_PARAMS}"
+  fi
+
+  # --current → default current params
   if [[ "${current}" == "true" && -z "${current_params}" ]]; then
     current_params="${DEFAULT_CURRENT_PARAMS}"
   fi
 
+  # If no explicit data selection was made, default to hourly forecast
+  # (unless it's a current-only request with no date/forecast args)
   if [[ -z "${hourly_params}" && -z "${daily_params}" ]]; then
-    if [[ "${current}" == "true" && -z "${forecast_days}" && "${has_data_selection}" == "true" ]]; then
-      : # current-only request
+    if [[ "${current}" == "true" && -z "${forecast_days}" && -z "${start_date}" ]]; then
+      : # current-only request — don't add forecast data
     else
       hourly_params="${DEFAULT_HOURLY_PARAMS}"
     fi
@@ -326,6 +354,8 @@ cmd_weather() {
   [[ -n "${daily_params}" ]]        && qs="${qs}&daily=${daily_params}"
   [[ -n "${forecast_days}" ]]       && qs="${qs}&forecast_days=${forecast_days}"
   [[ -n "${past_days}" ]]           && qs="${qs}&past_days=${past_days}"
+  [[ -n "${start_date}" ]]          && qs="${qs}&start_date=${start_date}"
+  [[ -n "${end_date}" ]]            && qs="${qs}&end_date=${end_date}"
   [[ -n "${timezone}" ]]            && qs="${qs}&timezone=${timezone}"
   [[ -n "${temperature_unit}" ]]    && qs="${qs}&temperature_unit=${temperature_unit}"
   [[ -n "${wind_speed_unit}" ]]     && qs="${qs}&wind_speed_unit=${wind_speed_unit}"

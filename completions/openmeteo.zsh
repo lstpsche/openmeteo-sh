@@ -39,10 +39,14 @@ _openmeteo() {
             '--lat=[Latitude]:num' \
             '--lon=[Longitude]:num' \
             '--city=[City name]:city' \
-            '--country=[Country code]:code' \
+            '--country=[Country code (ISO 3166-1 alpha-2)]:code' \
             '--current[Include current conditions]' \
-            '--forecast-days=[Forecast days (1-16)]:days' \
+            '--daily[Include daily forecast (default params)]' \
+            '--hourly[Include hourly forecast (default params)]' \
+            '--forecast-days=[Forecast days (0-16)]:days' \
             '--past-days=[Past days (0-92)]:days' \
+            '--start-date=[Start of custom date range (YYYY-MM-DD)]:date' \
+            '--end-date=[End of custom date range (YYYY-MM-DD)]:date' \
             '--hourly-params=[Hourly variables]:params' \
             '--daily-params=[Daily variables]:params' \
             '--current-params=[Current variables]:params' \

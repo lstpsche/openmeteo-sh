@@ -93,9 +93,19 @@ brew install openmeteo-sh
 
 This also installs bash/zsh tab completions automatically. The CLI command is `openmeteo`.
 
-### Debian / Ubuntu (.deb)
+### Debian / Ubuntu (APT repository)
 
-Download the `.deb` from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
+```bash
+# Add the repository
+echo "deb [trusted=yes] https://lstpsche.github.io/apt-repo stable main" \
+  | sudo tee /etc/apt/sources.list.d/openmeteo-sh.list
+
+# Install
+sudo apt update
+sudo apt install openmeteo-sh
+```
+
+Or download a `.deb` directly from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
 
 ```bash
 curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.0.0/openmeteo-sh_1.0.0-1_all.deb
@@ -125,7 +135,10 @@ To uninstall a Makefile installation: `sudo make uninstall`
 # Homebrew
 brew update && brew upgrade openmeteo-sh
 
-# Debian / Ubuntu
+# Debian / Ubuntu (APT repo)
+sudo apt update && sudo apt upgrade openmeteo-sh
+
+# Debian / Ubuntu (manual .deb)
 curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/<VERSION>/openmeteo-sh_<VERSION>-1_all.deb
 sudo dpkg -i openmeteo-sh_<VERSION>-1_all.deb
 

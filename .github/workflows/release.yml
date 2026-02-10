@@ -40,7 +40,7 @@ jobs:
 
       - name: Update Homebrew tap
         env:
-          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          TAP_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           TARBALL_URL="https://github.com/lstpsche/openmeteo-sh/archive/refs/tags/${VERSION}.tar.gz"
@@ -60,3 +60,16 @@ jobs:
           git add Formula/openmeteo-sh.rb
           git commit -m "openmeteo-sh ${VERSION}"
           git push
+
+      - name: Trigger APT repo update
+        env:
+          APT_TOKEN: ${{ secrets.RELEASES_GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Triggering APT repo update for ${VERSION}..."
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${APT_TOKEN}" \
+            https://api.github.com/repos/lstpsche/apt-repo/dispatches \
+            -d "{\"event_type\":\"update-apt-repo\",\"client_payload\":{\"version\":\"${VERSION}\"}}"
+          echo "APT repo update triggered"

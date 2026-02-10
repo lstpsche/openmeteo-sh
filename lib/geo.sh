@@ -29,6 +29,21 @@ _resolve_location() {
   local results_count
   results_count=$(echo "${response}" | jq '.results | length' 2>/dev/null)
 
+  # Fallback: if country was provided but no results found, retry without it.
+  # The Geocoding API expects ISO 3166-1 alpha-2 codes (e.g. BY, GB);
+  # full country names like "Belarus" won't match.
+  if [[ -z "${results_count}" || "${results_count}" -eq 0 ]] && [[ -n "${country}" ]]; then
+    _verbose "no results for '${city}' with country '${country}', retrying without country filter"
+    local fallback_qs="name=${encoded_city}&count=1&language=en&format=json"
+    response=$(_request "${BASE_URL_GEOCODING}" "${fallback_qs}")
+    results_count=$(echo "${response}" | jq '.results | length' 2>/dev/null)
+
+    if [[ -n "${results_count}" && "${results_count}" -gt 0 ]]; then
+      _warn "country '${country}' did not match; showing best result without country filter"
+      _warn "hint: --country expects an ISO 3166-1 alpha-2 code (e.g. BY, GB, DE, US)"
+    fi
+  fi
+
   if [[ -z "${results_count}" || "${results_count}" -eq 0 ]]; then
     _die "location not found: '${city}'${country:+ (country: ${country})}"
   fi
