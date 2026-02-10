@@ -1,0 +1,6 @@
+openmeteo (0.1.0-1) unstable; urgency=low
+
+  * Initial release.
+  * Covers all 10 Open-Meteo API endpoints.
+
+ -- Nikita Shkoda <nikita@lstpsche.dev>  Mon, 09 Feb 2026 00:00:00 +0000

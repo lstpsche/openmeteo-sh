@@ -1,0 +1,20 @@
+Source: openmeteo
+Section: utils
+Priority: optional
+Maintainer: Nikita Shkoda <nikita@lstpsche.dev>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/lstpsche/openmeteo
+Rules-Requires-Root: no
+
+Package: openmeteo
+Architecture: all
+Depends: bash (>= 4.0), jq, curl, ${misc:Depends}
+Description: Fast, lightweight CLI for the entire Open-Meteo API suite
+ A Bash CLI tool that provides access to all Open-Meteo APIs from the
+ terminal: weather forecasts, historical data, ensemble models, climate
+ projections, marine weather, air quality, flood data, elevation lookup,
+ and satellite solar radiation.
+ .
+ Features human-friendly colored output, machine-parseable porcelain
+ format, and raw JSON mode. Only requires jq as a non-standard dependency.

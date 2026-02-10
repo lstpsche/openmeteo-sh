@@ -84,33 +84,40 @@ sudo dnf install jq
 sudo pacman -S jq
 ```
 
-### From source (recommended for now)
+### Homebrew (macOS & Linux)
 
 ```bash
-git clone https://github.com/lstpsche/openmeteo.git
-cd openmeteo
+brew tap lstpsche/tap
+brew install openmeteo-sh
+```
+
+This also installs bash/zsh tab completions automatically. The CLI command is `openmeteo`.
+
+### Debian / Ubuntu (.deb)
+
+Download the `.deb` from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
+
+```bash
+curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/v0.1.0/openmeteo-sh_0.1.0-1_all.deb
+sudo dpkg -i openmeteo-sh_0.1.0-1_all.deb
+sudo apt-get install -f   # install dependencies (jq, curl)
+```
+
+### From source
+
+```bash
+git clone https://github.com/lstpsche/openmeteo-sh.git
+cd openmeteo-sh
+
+# Option A: use the Makefile (recommended — installs completions too)
+sudo make install
+
+# Option B: symlink into your PATH (for development)
 chmod +x openmeteo
-
-# Option A: symlink into your PATH
 ln -s "$(pwd)/openmeteo" /usr/local/bin/openmeteo
-
-# Option B: copy
-cp openmeteo /usr/local/bin/openmeteo
-cp -r lib/ /usr/local/lib/openmeteo/lib/
-cp -r commands/ /usr/local/lib/openmeteo/commands/
 ```
 
-### Homebrew (planned)
-
-```bash
-brew install lstpsche/tap/openmeteo
-```
-
-### apt (planned)
-
-```bash
-sudo apt-get install openmeteo
-```
+To uninstall a Makefile installation: `sudo make uninstall`
 
 ---
 
@@ -612,8 +619,8 @@ Contributions are welcome! Here's how to get started:
 ### Setup
 
 ```bash
-git clone https://github.com/lstpsche/openmeteo.git
-cd openmeteo
+git clone https://github.com/lstpsche/openmeteo-sh.git
+cd openmeteo-sh
 chmod +x openmeteo
 ```
 
@@ -622,6 +629,7 @@ chmod +x openmeteo
 ```
 openmeteo-sh/
   openmeteo              # main entrypoint — subcommand dispatch
+  Makefile               # install / uninstall targets
   lib/
     core.sh              # shared: arg parsing, curl wrapper, validation, API key
     output.sh            # output formatting, shared jq library
@@ -637,6 +645,12 @@ openmeteo-sh/
     flood.sh             # openmeteo flood
     elevation.sh         # openmeteo elevation
     satellite.sh         # openmeteo satellite
+  completions/
+    openmeteo.bash       # bash tab-completion
+    openmeteo.zsh        # zsh tab-completion
+  Formula/
+    openmeteo.rb         # Homebrew formula template
+  debian/                # Debian packaging scaffolding
 ```
 
 ### Conventions
@@ -655,7 +669,8 @@ openmeteo-sh/
 3. Add help text to the main `--help` output.
 4. Implement all three output formats (human, porcelain, raw).
 5. Add verbose input validation before API calls.
-6. Test all success and failure paths manually.
+6. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
+7. Test all success and failure paths manually.
 
 ### Code style
 
@@ -668,7 +683,7 @@ openmeteo-sh/
 
 ## Submitting Issues
 
-Found a bug? Have a feature request? Please [open an issue on GitHub](https://github.com/lstpsche/openmeteo/issues/new).
+Found a bug? Have a feature request? Please [open an issue on GitHub](https://github.com/lstpsche/openmeteo-sh/issues/new).
 
 When reporting bugs, include:
 
