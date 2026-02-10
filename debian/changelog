@@ -1,3 +1,13 @@
+openmeteo-sh (1.1.0-1) stable; urgency=low
+
+  * Add --daily / --hourly flags for selective forecast output.
+  * Add --start-date / --end-date for custom date ranges.
+  * Geocoding fallback when full country name is used instead of ISO code.
+  * --verbose flag for debug output (resolved locations, request URLs).
+  * APT repository support via GitHub Pages.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Mon, 10 Feb 2026 20:00:00 +0000
+
 openmeteo-sh (1.0.0-1) stable; urgency=low
 
   * Stable release.
