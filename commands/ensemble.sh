@@ -453,6 +453,7 @@ cmd_ensemble() {
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
+      --verbose)            OPENMETEO_VERBOSE="true" ;;
       --help)               _ensemble_help; return 0 ;;
       *)                    _die_usage "ensemble: unknown option: $1" ;;
     esac
@@ -485,9 +486,7 @@ cmd_ensemble() {
     lon="${RESOLVED_LON}"
     loc_name="${RESOLVED_NAME}"
     loc_country="${RESOLVED_COUNTRY}"
-    if [[ "${OUTPUT_FORMAT}" == "human" ]]; then
-      _warn "resolved '${city}' → ${RESOLVED_NAME}${RESOLVED_COUNTRY:+, ${RESOLVED_COUNTRY}} (${lat}, ${lon})"
-    fi
+    _verbose "resolved '${city}' → ${RESOLVED_NAME}${RESOLVED_COUNTRY:+, ${RESOLVED_COUNTRY}} (${lat}, ${lon})"
   fi
 
   if [[ -z "${lat}" || -z "${lon}" ]]; then

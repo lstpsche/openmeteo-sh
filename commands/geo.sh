@@ -111,6 +111,7 @@ cmd_geo() {
       --api-key=*)  API_KEY=$(_extract_value "$1") ;;
       --porcelain)  OUTPUT_FORMAT="porcelain" ;;
       --raw)        OUTPUT_FORMAT="raw" ;;
+      --verbose)    OPENMETEO_VERBOSE="true" ;;
       --help)       _geo_help; return 0 ;;
       *)            _die_usage "geo: unknown option: $1" ;;
     esac

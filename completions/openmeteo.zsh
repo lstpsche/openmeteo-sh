@@ -22,6 +22,7 @@ _openmeteo() {
     '--api-key=[OpenMeteo API key]:key' \
     '--porcelain[Machine-parseable output]' \
     '--raw[Raw JSON output]' \
+    '--verbose[Show resolved locations and request URLs]' \
     '--help[Show help]' \
     '--version[Show version]' \
     '1:command:->cmd' \

@@ -7,7 +7,7 @@ _openmeteo() {
   _init_completion || return
 
   local commands="weather geo history ensemble climate marine air-quality flood elevation satellite"
-  local global_opts="--api-key= --porcelain --raw --help --version"
+  local global_opts="--api-key= --porcelain --raw --verbose --help --version"
 
   # Determine the subcommand (first non-option word after "openmeteo")
   local subcmd=""

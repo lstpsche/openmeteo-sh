@@ -54,6 +54,7 @@ Output modes:
 
 Global options:
   --api-key=KEY   OpenMeteo API key (overrides OPENMETEO_API_KEY env var)
+  --verbose       Show resolved locations and full request URLs
   --help          Show help for a command
   --version       Show version
 

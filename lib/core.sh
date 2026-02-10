@@ -18,6 +18,9 @@ BASE_URL_SATELLITE="https://satellite-api.open-meteo.com/v1/archive"
 # Resolved API key (set during arg parsing)
 API_KEY=""
 
+# Verbose mode (set via --verbose flag)
+OPENMETEO_VERBOSE=""
+
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
@@ -28,6 +31,12 @@ _error() {
 
 _warn() {
   echo "openmeteo: warning: $*" >&2
+}
+
+# Print a verbose/debug message to stderr. Only emits when --verbose is set.
+_verbose() {
+  [[ -n "${OPENMETEO_VERBOSE}" ]] && echo "openmeteo: $*" >&2
+  return 0
 }
 
 _die() {
@@ -96,6 +105,15 @@ _request() {
     full_url="${base_url}?${query_string}"
   else
     full_url="${base_url}"
+  fi
+
+  # Log the full request URL in verbose mode (mask API key)
+  if [[ -n "${OPENMETEO_VERBOSE}" ]]; then
+    local log_url="${full_url}"
+    if [[ -n "${API_KEY}" ]]; then
+      log_url="${log_url//${API_KEY}/***}"
+    fi
+    _verbose "GET ${log_url}"
   fi
 
   local http_code body tmp_file
