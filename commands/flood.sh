@@ -31,6 +31,7 @@ Location (required):
 
 Data selection:
   --forecast-days=N       Forecast length in days (0-210, default: 92)
+  --forecast-since=N      Start forecast from day N (1=today, 2=tomorrow, ...)
   --past-days=N           Include past days of archived forecasts
   --daily-params=LIST     Comma-separated daily variables
   --start-date=DATE       Start date (YYYY-MM-DD, from 1984-01-01)
@@ -75,7 +76,52 @@ Examples:
   openmeteo flood --lat=59.91 --lon=10.75 \\
     --start-date=2024-01-01 --end-date=2024-03-31
   openmeteo flood --city=Oslo --porcelain
+
+Detailed help:
+  openmeteo flood help --daily-params   List available daily variables
 EOF
+}
+
+_flood_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo flood':
+
+River Discharge:
+  river_discharge               Simulated river discharge (m³/s)
+  river_discharge_mean          Mean from ensemble members (m³/s)
+  river_discharge_median        Median from ensemble members (m³/s)
+  river_discharge_max           Maximum from ensemble members (m³/s)
+  river_discharge_min           Minimum from ensemble members (m³/s)
+  river_discharge_p25           25th percentile from ensemble (m³/s)
+  river_discharge_p75           75th percentile from ensemble (m³/s)
+
+Note: Statistical variables (mean/median/max/min/p25/p75) are only
+available for forecasts, not for consolidated historical data.
+Use --ensemble to get all 50 individual ensemble members.
+
+The API uses a 5 km grid -- the closest river may not be selected
+correctly. Varying coordinates by ±0.1° can help.
+
+Usage: --daily-params=river_discharge,river_discharge_mean,river_discharge_max
+EOF
+}
+
+_flood_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --daily-params) _flood_help_daily_params | _format_param_help "${fmt}" ;;
+    "")             _flood_help ;;
+    *)              _error "unknown help topic: ${topic}"; echo; _flood_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -378,8 +424,14 @@ _flood_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_flood() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _flood_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local forecast_days="${DEFAULT_FLOOD_FORECAST_DAYS}"
+  local forecast_since=""
   local past_days="${DEFAULT_FLOOD_PAST_DAYS}"
   local daily_params="" model="${DEFAULT_FLOOD_MODEL}"
   local cell_selection="" ensemble="false"
@@ -392,6 +444,7 @@ cmd_flood() {
       --city=*)             city=$(_extract_value "$1") ;;
       --country=*)          country=$(_extract_value "$1") ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
+      --forecast-since=*)   forecast_since=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
       --model=*)            model=$(_extract_value "$1") ;;
@@ -415,6 +468,13 @@ cmd_flood() {
   # -----------------------------------------------------------------------
   # Validate inputs
   # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _validate_integer "--forecast-since" "${forecast_since}" 1
+    if [[ -n "${start_date}" ]]; then
+      _die "--forecast-since and --start-date are mutually exclusive"
+    fi
+  fi
+
   _validate_flood_inputs \
     "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
     "${cell_selection}" "${daily_params}" "${model}" \
@@ -443,6 +503,16 @@ cmd_flood() {
   # -----------------------------------------------------------------------
   if [[ -z "${daily_params}" ]]; then
     daily_params="${DEFAULT_FLOOD_DAILY_PARAMS}"
+  fi
+
+  # -----------------------------------------------------------------------
+  # Resolve --forecast-since into start_date/end_date
+  # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _resolve_forecast_since "${forecast_since}" "${forecast_days}" 92
+    start_date="${FORECAST_START_DATE}"
+    end_date="${FORECAST_END_DATE}"
+    forecast_days=""
   fi
 
   # -----------------------------------------------------------------------

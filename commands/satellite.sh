@@ -122,7 +122,76 @@ Examples:
     --start-date=2025-06-01 --end-date=2025-06-07
   openmeteo satellite --city=London --temporal-resolution=native --raw
   openmeteo satellite --city=Sydney --porcelain
+
+Detailed help:
+  openmeteo satellite help --hourly-params   List available hourly variables
+  openmeteo satellite help --daily-params    List available daily variables
 EOF
+}
+
+_satellite_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo satellite':
+
+Solar Radiation (hour average):
+  shortwave_radiation           GHI -- global horizontal irradiance (W/m²)
+  direct_radiation              Direct solar radiation (W/m²)
+  diffuse_radiation             DHI -- diffuse horizontal irradiance (W/m²)
+  direct_normal_irradiance      DNI -- direct normal irradiance (W/m²)
+  global_tilted_irradiance      GTI -- tilted plane irradiance (requires --tilt and --azimuth)
+  terrestrial_radiation         Top-of-atmosphere radiation (W/m²)
+
+Solar Radiation (instantaneous):
+  shortwave_radiation_instant   Instantaneous GHI at indicated time
+  direct_radiation_instant      Instantaneous direct radiation
+  diffuse_radiation_instant     Instantaneous DHI
+  direct_normal_irradiance_instant  Instantaneous DNI
+  global_tilted_irradiance_instant  Instantaneous GTI
+  terrestrial_radiation_instant     Instantaneous terrestrial radiation
+
+Other:
+  is_day                        1 if daytime, 0 if night
+  sunshine_duration             Seconds of sunshine per hour
+
+Note: Averaged values are backward-averaged over the preceding hour.
+Use *_instant variants for the exact value at the indicated time.
+For global_tilted_irradiance, --tilt (0-90°) and --azimuth are required.
+
+Usage: --hourly-params=shortwave_radiation,direct_radiation,diffuse_radiation
+EOF
+}
+
+_satellite_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo satellite':
+
+  sunrise                       Sunrise time (ISO 8601)
+  sunset                        Sunset time (ISO 8601)
+  daylight_duration             Daylight duration (seconds)
+  sunshine_duration             Sunshine duration (seconds)
+  shortwave_radiation_sum       Total shortwave radiation (MJ/m²)
+
+Usage: --daily-params=sunrise,sunset,sunshine_duration,shortwave_radiation_sum
+EOF
+}
+
+_satellite_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params) _satellite_help_hourly_params | _format_param_help "${fmt}" ;;
+    --daily-params)  _satellite_help_daily_params  | _format_param_help "${fmt}" ;;
+    "")              _satellite_help ;;
+    *)               _error "unknown help topic: ${topic}"; echo; _satellite_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -517,6 +586,11 @@ _satellite_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_satellite() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _satellite_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local forecast_days="${DEFAULT_SATELLITE_FORECAST_DAYS}"
   local past_days="${DEFAULT_SATELLITE_PAST_DAYS}"

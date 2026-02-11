@@ -48,6 +48,7 @@ Data selection:
                         (default: temperature_2m,precipitation,weather_code,wind_speed_10m)
   --daily-params=LIST   Comma-separated daily variables
   --forecast-days=N     Forecast length in days (0-35, default: 7)
+  --forecast-since=N    Start forecast from day N (1=today, 2=tomorrow, ...)
   --past-days=N         Include past days
 
 Time range (alternative to forecast-days/past-days):
@@ -74,7 +75,168 @@ Examples:
   openmeteo ensemble --city=Tokyo --models=ecmwf_ifs025 \\
     --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
   openmeteo ensemble --city=London --models=icon_seamless --porcelain
+
+Detailed help:
+  openmeteo ensemble help --hourly-params   List available hourly variables
+  openmeteo ensemble help --daily-params    List available daily variables
 EOF
+}
+
+_ensemble_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo ensemble':
+
+Temperature & Humidity:
+  temperature_2m                Air temperature at 2m
+  relative_humidity_2m          Relative humidity at 2m
+  dew_point_2m                  Dew point at 2m
+  apparent_temperature          Feels-like temperature
+  wet_bulb_temperature_2m       Wet bulb temperature at 2m
+
+Precipitation:
+  precipitation                 Total precipitation (rain + snow)
+  rain                          Rain amount
+  snowfall                      Snowfall amount (cm)
+  snow_depth                    Snow depth on ground (m)
+
+Weather:
+  weather_code                  WMO weather interpretation code
+  cloud_cover                   Total cloud cover (%)
+  cloud_cover_low               Low-level cloud cover
+  cloud_cover_mid               Mid-level cloud cover
+  cloud_cover_high              High-level cloud cover
+  visibility                    Horizontal visibility (m)
+
+Pressure:
+  pressure_msl                  Mean sea level pressure (hPa)
+  surface_pressure              Surface pressure (hPa)
+
+Wind:
+  wind_speed_10m                Wind speed at 10m
+  wind_speed_80m                Wind speed at 80m
+  wind_speed_120m               Wind speed at 120m
+  wind_direction_10m            Wind direction at 10m
+  wind_direction_80m            Wind direction at 80m
+  wind_direction_120m           Wind direction at 120m
+  wind_gusts_10m                Wind gusts at 10m
+
+Temperature at Height:
+  temperature_80m               Temperature at 80m
+  temperature_120m              Temperature at 120m
+  surface_temperature           Surface temperature
+
+Solar Radiation:
+  shortwave_radiation           Global horizontal irradiance (W/m²)
+  direct_radiation              Direct beam radiation
+  diffuse_radiation             Diffuse horizontal irradiance
+  direct_normal_irradiance      Direct normal irradiance DNI
+
+Soil:
+  soil_temperature_0_to_10cm    Soil temperature 0-10cm
+  soil_temperature_10_to_40cm   Soil temperature 10-40cm
+  soil_temperature_40_to_100cm  Soil temperature 40-100cm
+  soil_temperature_100_to_200cm Soil temperature 100-200cm
+  soil_moisture_0_to_10cm       Soil moisture 0-10cm
+  soil_moisture_10_to_40cm      Soil moisture 10-40cm
+  soil_moisture_40_to_100cm     Soil moisture 40-100cm
+  soil_moisture_100_to_400cm    Soil moisture 100-400cm
+
+Other:
+  et0_fao_evapotranspiration    Reference ET₀ (FAO method)
+  vapour_pressure_deficit       Vapour pressure deficit (kPa)
+  cape                          Convective Available Potential Energy (J/kg)
+  freezing_level_height         Height of 0°C isotherm (m)
+  sunshine_duration             Sunshine duration per hour (s)
+  uv_index                      UV index
+  uv_index_clear_sky            UV index under clear sky
+
+Note: Ensemble models return data for multiple members. The human-friendly
+output shows aggregated statistics (mean, spread). Use --raw for individual
+member data.
+
+Usage: --hourly-params=temperature_2m,precipitation,weather_code
+EOF
+}
+
+_ensemble_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo ensemble':
+
+Temperature:
+  temperature_2m_max            Maximum daily temperature
+  temperature_2m_min            Minimum daily temperature
+  temperature_2m_mean           Mean daily temperature
+  apparent_temperature_max      Maximum feels-like temperature
+  apparent_temperature_min      Minimum feels-like temperature
+  apparent_temperature_mean     Mean feels-like temperature
+
+Precipitation:
+  precipitation_sum             Total daily precipitation (mm)
+  rain_sum                      Total daily rain (mm)
+  snowfall_sum                  Total daily snowfall (cm)
+  precipitation_hours           Hours with precipitation
+
+Wind:
+  wind_speed_10m_max            Maximum daily wind speed
+  wind_speed_10m_min            Minimum daily wind speed
+  wind_speed_10m_mean           Mean daily wind speed
+  wind_gusts_10m_max            Maximum daily wind gusts
+  wind_gusts_10m_min            Minimum daily wind gusts
+  wind_gusts_10m_mean           Mean daily wind gusts
+  wind_direction_10m_dominant   Dominant wind direction (degrees)
+
+Other:
+  shortwave_radiation_sum       Total daily solar radiation (MJ/m²)
+  et0_fao_evapotranspiration    Daily reference ET₀ (mm)
+  sunshine_duration             Daily sunshine duration (s)
+
+Pressure:
+  pressure_msl_max              Max daily mean sea level pressure
+  pressure_msl_min              Min daily mean sea level pressure
+  pressure_msl_mean             Mean daily mean sea level pressure
+  surface_pressure_max          Max daily surface pressure
+  surface_pressure_min          Min daily surface pressure
+  surface_pressure_mean         Mean daily surface pressure
+
+Humidity:
+  relative_humidity_2m_max      Max daily relative humidity
+  relative_humidity_2m_min      Min daily relative humidity
+  relative_humidity_2m_mean     Mean daily relative humidity
+  dew_point_2m_max              Max daily dew point
+  dew_point_2m_min              Min daily dew point
+  dew_point_2m_mean             Mean daily dew point
+
+Cloud:
+  cloud_cover_max               Max daily cloud cover
+  cloud_cover_min               Min daily cloud cover
+  cloud_cover_mean              Mean daily cloud cover
+
+CAPE:
+  cape_max                      Max daily CAPE
+  cape_min                      Min daily CAPE
+  cape_mean                     Mean daily CAPE
+
+Usage: --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
+EOF
+}
+
+_ensemble_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params) _ensemble_help_hourly_params | _format_param_help "${fmt}" ;;
+    --daily-params)  _ensemble_help_daily_params  | _format_param_help "${fmt}" ;;
+    "")              _ensemble_help ;;
+    *)               _error "unknown help topic: ${topic}"; echo; _ensemble_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -439,10 +601,16 @@ _ensemble_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_ensemble() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _ensemble_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local models=""
   local hourly_params="" daily_params=""
   local forecast_days="${DEFAULT_ENSEMBLE_FORECAST_DAYS}"
+  local forecast_since=""
   local past_days="${DEFAULT_ENSEMBLE_PAST_DAYS}"
   local start_date="" end_date=""
   local temperature_unit="${DEFAULT_ENSEMBLE_TEMPERATURE_UNIT}"
@@ -461,6 +629,7 @@ cmd_ensemble() {
       --hourly-params=*)    hourly_params=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
+      --forecast-since=*)   forecast_since=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
       --start-date=*)       start_date=$(_extract_value "$1") ;;
       --end-date=*)         end_date=$(_extract_value "$1") ;;
@@ -488,6 +657,13 @@ cmd_ensemble() {
   if [[ -z "${models}" ]]; then
     _ensemble_help >&2
     _die_usage "missing required argument: --models"
+  fi
+
+  if [[ -n "${forecast_since}" ]]; then
+    _validate_integer "--forecast-since" "${forecast_since}" 1
+    if [[ -n "${start_date}" ]]; then
+      _die "--forecast-since and --start-date are mutually exclusive"
+    fi
   fi
 
   _validate_ensemble_inputs \
@@ -519,6 +695,16 @@ cmd_ensemble() {
   # -----------------------------------------------------------------------
   if [[ -z "${hourly_params}" && -z "${daily_params}" ]]; then
     hourly_params="${DEFAULT_ENSEMBLE_HOURLY_PARAMS}"
+  fi
+
+  # -----------------------------------------------------------------------
+  # Resolve --forecast-since into start_date/end_date
+  # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _resolve_forecast_since "${forecast_since}" "${forecast_days}" 7
+    start_date="${FORECAST_START_DATE}"
+    end_date="${FORECAST_END_DATE}"
+    forecast_days=""
   fi
 
   # -----------------------------------------------------------------------

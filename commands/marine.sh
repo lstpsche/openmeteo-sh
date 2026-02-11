@@ -41,6 +41,7 @@ Location (required):
 Data selection:
   --current               Include current marine conditions
   --forecast-days=N       Forecast length in days (0-16, default: 7)
+  --forecast-since=N      Start forecast from day N (1=today, 2=tomorrow, ...)
   --past-days=N           Include past days (0-92)
   --hourly-params=LIST    Comma-separated hourly variables
   --daily-params=LIST     Comma-separated daily variables
@@ -90,7 +91,122 @@ Examples:
   openmeteo marine --forecast-days=5 --lat=28.63 --lon=-80.60 \\
     --daily-params=wave_height_max,wave_direction_dominant,swell_wave_height_max
   openmeteo marine --current --lat=54.54 --lon=10.23 --porcelain
+
+Detailed help:
+  openmeteo marine help --hourly-params    List available hourly variables
+  openmeteo marine help --daily-params     List available daily variables
+  openmeteo marine help --current-params   List available current variables
 EOF
+}
+
+_marine_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo marine':
+
+Waves (combined sea):
+  wave_height                   Significant wave height (m)
+  wave_direction                Mean wave direction (degrees)
+  wave_period                   Mean wave period (s)
+  wave_peak_period              Peak wave period (s)
+
+Wind Waves:
+  wind_wave_height              Wind-generated wave height (m)
+  wind_wave_direction           Wind wave direction (degrees)
+  wind_wave_period              Wind wave period (s)
+  wind_wave_peak_period         Wind wave peak period (s)
+
+Swell (primary):
+  swell_wave_height             Primary swell height (m)
+  swell_wave_direction          Primary swell direction (degrees)
+  swell_wave_period             Primary swell period (s)
+  swell_wave_peak_period        Primary swell peak period (s)
+
+Swell (secondary / tertiary):
+  secondary_swell_wave_height   Secondary swell height
+  secondary_swell_wave_direction Secondary swell direction
+  secondary_swell_wave_period   Secondary swell period
+  tertiary_swell_wave_height    Tertiary swell height
+  tertiary_swell_wave_direction Tertiary swell direction
+  tertiary_swell_wave_period    Tertiary swell period
+
+Ocean:
+  ocean_current_velocity        Ocean current speed (km/h)
+  ocean_current_direction       Ocean current direction (degrees)
+  sea_surface_temperature       Sea surface temperature (°C)
+  sea_level_height_msl          Sea level height above MSL (m)
+  invert_barometer_height       Inverted barometer effect (m)
+
+Usage: --hourly-params=wave_height,wave_direction,sea_surface_temperature
+EOF
+}
+
+_marine_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo marine':
+
+Waves (combined):
+  wave_height_max               Max daily wave height (m)
+  wave_direction_dominant       Dominant wave direction (degrees)
+  wave_period_max               Max daily wave period (s)
+
+Wind Waves:
+  wind_wave_height_max          Max daily wind wave height
+  wind_wave_direction_dominant  Dominant wind wave direction
+  wind_wave_period_max          Max daily wind wave period
+  wind_wave_peak_period_max     Max daily wind wave peak period
+
+Swell:
+  swell_wave_height_max         Max daily swell height
+  swell_wave_direction_dominant Dominant swell direction
+  swell_wave_period_max         Max daily swell period
+  swell_wave_peak_period_max    Max daily swell peak period
+
+Usage: --daily-params=wave_height_max,wave_direction_dominant
+EOF
+}
+
+_marine_help_current_params() {
+  cat <<'EOF'
+Current variables for 'openmeteo marine':
+
+  wave_height                   Current significant wave height
+  wave_direction                Current mean wave direction
+  wave_period                   Current mean wave period
+  wave_peak_period              Current peak wave period
+  wind_wave_height              Current wind wave height
+  wind_wave_direction           Current wind wave direction
+  wind_wave_period              Current wind wave period
+  wind_wave_peak_period         Current wind wave peak period
+  swell_wave_height             Current swell height
+  swell_wave_direction          Current swell direction
+  swell_wave_period             Current swell period
+  swell_wave_peak_period        Current swell peak period
+  ocean_current_velocity        Current ocean current speed
+  ocean_current_direction       Current ocean current direction
+  sea_surface_temperature       Current sea surface temperature
+
+Usage: --current-params=wave_height,sea_surface_temperature,ocean_current_velocity
+EOF
+}
+
+_marine_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params)  _marine_help_hourly_params  | _format_param_help "${fmt}" ;;
+    --daily-params)   _marine_help_daily_params   | _format_param_help "${fmt}" ;;
+    --current-params) _marine_help_current_params | _format_param_help "${fmt}" ;;
+    "")               _marine_help ;;
+    *)                _error "unknown help topic: ${topic}"; echo; _marine_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -525,8 +641,14 @@ _marine_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_marine() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _marine_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local current="false" forecast_days="${DEFAULT_MARINE_FORECAST_DAYS}"
+  local forecast_since=""
   local past_days="${DEFAULT_MARINE_PAST_DAYS}"
   local hourly_params="" daily_params="" current_params=""
   local length_unit="${DEFAULT_MARINE_LENGTH_UNIT}"
@@ -543,6 +665,7 @@ cmd_marine() {
       --country=*)          country=$(_extract_value "$1") ;;
       --current)            current="true" ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
+      --forecast-since=*)   forecast_since=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
       --hourly-params=*)    hourly_params=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
@@ -570,6 +693,13 @@ cmd_marine() {
   # -----------------------------------------------------------------------
   # Validate inputs
   # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _validate_integer "--forecast-since" "${forecast_since}" 1
+    if [[ -n "${start_date}" ]]; then
+      _die "--forecast-since and --start-date are mutually exclusive"
+    fi
+  fi
+
   _validate_marine_inputs \
     "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
     "${length_unit}" "${wind_speed_unit}" "${cell_selection}" \
@@ -612,6 +742,16 @@ cmd_marine() {
     else
       hourly_params="${DEFAULT_MARINE_HOURLY_PARAMS}"
     fi
+  fi
+
+  # -----------------------------------------------------------------------
+  # Resolve --forecast-since into start_date/end_date
+  # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _resolve_forecast_since "${forecast_since}" "${forecast_days}" 7
+    start_date="${FORECAST_START_DATE}"
+    end_date="${FORECAST_END_DATE}"
+    forecast_days=""
   fi
 
   # -----------------------------------------------------------------------

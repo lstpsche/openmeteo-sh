@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # core.sh -- shared utilities for openmeteo CLI
 
-OPENMETEO_VERSION="1.2.0"
+OPENMETEO_VERSION="1.3.0"
 
 # Base URLs (no trailing slash)
 BASE_URL_FORECAST="https://api.open-meteo.com/v1/forecast"
@@ -223,6 +223,87 @@ _validate_date() {
   if (( 10#${day} < 1 || 10#${day} > 31 )); then
     _die "${name}: invalid day '${day}' in '${value}'"
   fi
+}
+
+# ---------------------------------------------------------------------------
+# Date helpers (portable: BSD/macOS + GNU/Linux)
+# ---------------------------------------------------------------------------
+
+# Return today's date in YYYY-MM-DD.
+_today() {
+  date +%Y-%m-%d
+}
+
+# Return a date N days from today in YYYY-MM-DD.
+# Usage: _date_offset_days 3   →  "2026-02-12" (if today is 2026-02-09)
+_date_offset_days() {
+  local days="$1"
+  if date -v+1d +%Y-%m-%d >/dev/null 2>&1; then
+    # BSD date (macOS)
+    date -v+"${days}d" +%Y-%m-%d
+  else
+    # GNU date (Linux)
+    date -d "+${days} days" +%Y-%m-%d
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Forecast-since helper
+# ---------------------------------------------------------------------------
+
+# Convert --forecast-since=N + --forecast-days=D into start_date/end_date.
+# Sets FORECAST_START_DATE and FORECAST_END_DATE globals.
+# Usage: _resolve_forecast_since "$forecast_since" "$forecast_days" "$default_days"
+_resolve_forecast_since() {
+  local since="$1" days="${2:-}" default_days="${3:-7}"
+
+  local effective_days="${days:-${default_days}}"
+
+  if (( since > effective_days )); then
+    _die "--forecast-since=${since} exceeds --forecast-days=${effective_days}"
+  fi
+
+  FORECAST_START_DATE=$(_date_offset_days $(( since - 1 )))
+  FORECAST_END_DATE=$(_date_offset_days $(( effective_days - 1 )))
+}
+
+# ---------------------------------------------------------------------------
+# Help-output formatter (format-aware param help)
+# ---------------------------------------------------------------------------
+
+# Transform human-friendly param help text into the requested format.
+# Reads from stdin. The input format is:
+#   Category:
+#     variable_name          Description text
+#
+# Porcelain: variable_name=Description text
+# LLM:       variable_name\tDescription text  (TSV, one header line)
+# Raw/Human: pass-through
+_format_param_help() {
+  local fmt="${1:-human}"
+
+  case "${fmt}" in
+    porcelain)
+      # Extract lines matching "  word_chars   Description" → name=description
+      while IFS= read -r line; do
+        if [[ "${line}" =~ ^[[:space:]]+([a-z_][a-z0-9_]*)([[:space:]]{2,})(.*) ]]; then
+          echo "${BASH_REMATCH[1]}=${BASH_REMATCH[3]}"
+        fi
+      done
+      ;;
+    llm)
+      echo "variable	description"
+      while IFS= read -r line; do
+        if [[ "${line}" =~ ^[[:space:]]+([a-z_][a-z0-9_]*)([[:space:]]{2,})(.*) ]]; then
+          printf '%s\t%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}"
+        fi
+      done
+      ;;
+    *)
+      # human / raw — pass-through
+      cat
+      ;;
+  esac
 }
 
 # URL-encode a string (minimal: spaces and special chars).

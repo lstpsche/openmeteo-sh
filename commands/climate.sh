@@ -79,7 +79,73 @@ Examples:
   openmeteo climate --city=Tokyo --models=EC_Earth3P_HR \\
     --start-date=1950-01-01 --end-date=2050-01-01 \\
     --daily-params=soil_moisture_0_to_10cm_mean --porcelain
+
+Detailed help:
+  openmeteo climate help --daily-params   List available daily variables
 EOF
+}
+
+_climate_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo climate' (CMIP6 projections):
+
+Temperature:
+  temperature_2m_max            Maximum daily temperature at 2m
+  temperature_2m_min            Minimum daily temperature at 2m
+  temperature_2m_mean           Mean daily temperature at 2m
+
+Humidity:
+  relative_humidity_2m_max      Maximum daily relative humidity
+  relative_humidity_2m_min      Minimum daily relative humidity
+  relative_humidity_2m_mean     Mean daily relative humidity
+  dew_point_2m_max              Maximum daily dew point
+  dew_point_2m_min              Minimum daily dew point
+  dew_point_2m_mean             Mean daily dew point
+
+Precipitation:
+  precipitation_sum             Total daily precipitation (mm)
+  rain_sum                      Total daily rain (mm)
+  snowfall_sum                  Total daily snowfall (cm)
+
+Wind:
+  wind_speed_10m_mean           Mean daily wind speed at 10m
+  wind_speed_10m_max            Maximum daily wind speed at 10m
+
+Pressure & Cloud:
+  pressure_msl_mean             Mean daily sea level pressure (hPa)
+  cloud_cover_mean              Mean daily cloud cover (%)
+
+Radiation & Evapotranspiration:
+  shortwave_radiation_sum       Total daily solar radiation (MJ/m²)
+  et0_fao_evapotranspiration    Daily reference ET₀ (mm)
+
+Soil:
+  soil_moisture_0_to_10cm_mean  Mean daily soil moisture 0-10cm (m³/m³)
+
+Note: Date range must be between 1950-01-01 and 2050-12-31.
+Available models: CMCC_CM2_VHR4, FGOALS_f3_H, HiRAM_SIT_HR,
+MRI_AGCM3_2_S, EC_Earth3P_HR, MPI_ESM1_2_XR, NICAM16_8S
+
+Usage: --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
+EOF
+}
+
+_climate_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --daily-params) _climate_help_daily_params | _format_param_help "${fmt}" ;;
+    "")             _climate_help ;;
+    *)              _error "unknown help topic: ${topic}"; echo; _climate_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -495,6 +561,11 @@ _climate_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_climate() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _climate_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local start_date="" end_date=""
   local models=""

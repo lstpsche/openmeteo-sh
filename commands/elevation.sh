@@ -215,6 +215,11 @@ _elevation_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_elevation() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    _elevation_help; return 0
+  fi
+
   local lat="" lon="" city="" country=""
 
   while [[ $# -gt 0 ]]; do

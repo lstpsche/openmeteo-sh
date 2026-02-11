@@ -128,6 +128,11 @@ JQFILTER
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_geo() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    _geo_help; return 0
+  fi
+
   local search="" count="${DEFAULT_GEO_COUNT}" language="${DEFAULT_GEO_LANGUAGE}"
   local country=""
 

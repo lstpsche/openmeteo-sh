@@ -55,7 +55,132 @@ Examples:
   openmeteo history --lat=52.52 --lon=13.41 --start-date=2020-12-25 --end-date=2020-12-31 \\
     --hourly-params=temperature_2m,snowfall,wind_speed_10m --model=era5
   openmeteo history --city=London --start-date=2024-07-01 --end-date=2024-07-01 --porcelain
+
+Detailed help:
+  openmeteo history help --hourly-params   List available hourly variables
+  openmeteo history help --daily-params    List available daily variables
 EOF
+}
+
+_history_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo history':
+
+Temperature & Humidity:
+  temperature_2m                Air temperature at 2m
+  relative_humidity_2m          Relative humidity at 2m
+  dew_point_2m                  Dew point at 2m
+  apparent_temperature          Feels-like temperature
+
+Precipitation:
+  precipitation                 Total precipitation (mm)
+  rain                          Rain amount (mm)
+  snowfall                      Snowfall amount (cm)
+  snow_depth                    Snow depth on ground (m)
+
+Weather:
+  weather_code                  WMO weather interpretation code
+  cloud_cover                   Total cloud cover (%)
+  cloud_cover_low               Low-level cloud cover
+  cloud_cover_mid               Mid-level cloud cover
+  cloud_cover_high              High-level cloud cover
+
+Pressure:
+  pressure_msl                  Mean sea level pressure (hPa)
+  surface_pressure              Surface pressure (hPa)
+
+Wind:
+  wind_speed_10m                Wind speed at 10m
+  wind_speed_100m               Wind speed at 100m
+  wind_direction_10m            Wind direction at 10m
+  wind_direction_100m           Wind direction at 100m
+  wind_gusts_10m                Wind gusts at 10m
+
+Solar Radiation:
+  shortwave_radiation           Global horizontal irradiance (W/m²)
+  direct_radiation              Direct beam radiation
+  diffuse_radiation             Diffuse horizontal irradiance
+  direct_normal_irradiance      Direct normal irradiance DNI
+  global_tilted_irradiance      Tilted surface irradiance
+  sunshine_duration             Seconds of sunshine per hour
+
+Soil:
+  soil_temperature_0_to_7cm     Soil temperature 0-7cm
+  soil_temperature_7_to_28cm    Soil temperature 7-28cm
+  soil_temperature_28_to_100cm  Soil temperature 28-100cm
+  soil_temperature_100_to_255cm Soil temperature 100-255cm
+  soil_moisture_0_to_7cm        Soil moisture 0-7cm
+  soil_moisture_7_to_28cm       Soil moisture 7-28cm
+  soil_moisture_28_to_100cm     Soil moisture 28-100cm
+  soil_moisture_100_to_255cm    Soil moisture 100-255cm
+
+Other:
+  et0_fao_evapotranspiration    Reference ET₀ (FAO method)
+  vapour_pressure_deficit       Vapour pressure deficit (kPa)
+  is_day                        1 if daytime, 0 if night
+
+Note: Available variables depend on the model chosen (--model).
+ERA5 data is available from 1940, CERRA from 1985, and ECMWF IFS from 2017.
+
+Usage: --hourly-params=temperature_2m,precipitation,weather_code,wind_speed_10m
+EOF
+}
+
+_history_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo history':
+
+Temperature:
+  temperature_2m_max            Maximum daily temperature
+  temperature_2m_min            Minimum daily temperature
+  temperature_2m_mean           Mean daily temperature
+  apparent_temperature_max      Maximum feels-like temperature
+  apparent_temperature_min      Minimum feels-like temperature
+  apparent_temperature_mean     Mean feels-like temperature
+
+Precipitation:
+  precipitation_sum             Total daily precipitation (mm)
+  rain_sum                      Total daily rain (mm)
+  snowfall_sum                  Total daily snowfall (cm)
+  precipitation_hours           Hours with precipitation
+
+Wind:
+  wind_speed_10m_max            Maximum daily wind speed at 10m
+  wind_gusts_10m_max            Maximum daily wind gusts at 10m
+  wind_direction_10m_dominant   Dominant wind direction (degrees)
+
+Sun & Weather:
+  weather_code                  WMO code for dominant weather
+  sunrise                       Sunrise time (ISO 8601)
+  sunset                        Sunset time (ISO 8601)
+  sunshine_duration             Daily sunshine duration (s)
+  daylight_duration             Daylight duration (s)
+
+Radiation & Evapotranspiration:
+  shortwave_radiation_sum       Total daily solar radiation (MJ/m²)
+  et0_fao_evapotranspiration    Daily reference ET₀ (mm)
+
+Usage: --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
+EOF
+}
+
+_history_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params) _history_help_hourly_params | _format_param_help "${fmt}" ;;
+    --daily-params)  _history_help_daily_params  | _format_param_help "${fmt}" ;;
+    "")              _history_help ;;
+    *)               _error "unknown help topic: ${topic}"; echo; _history_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -237,6 +362,11 @@ _history_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_history() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _history_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local start_date="" end_date=""
   local hourly_params="" daily_params=""

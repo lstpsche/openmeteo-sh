@@ -25,6 +25,7 @@ Location (required):
 Data selection:
   --current               Include current air quality conditions
   --forecast-days=N       Forecast length in days (0-7, default: 5)
+  --forecast-since=N      Start forecast from day N (1=today, 2=tomorrow, ...)
   --past-days=N           Include past days (0-92)
   --hourly-params=LIST    Comma-separated hourly variables
   --current-params=LIST   Comma-separated current variables
@@ -64,7 +65,97 @@ Examples:
   openmeteo air-quality --current --city=London --porcelain
   openmeteo air-quality --current --city=Rome \\
     --current-params=european_aqi,pm10,pm2_5,alder_pollen,birch_pollen
+
+Detailed help:
+  openmeteo air-quality help --hourly-params   List available hourly variables
+  openmeteo air-quality help --current-params  List available current variables
 EOF
+}
+
+_aq_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo air-quality':
+
+Pollutants:
+  pm10                          Particulate matter < 10 µm (µg/m³)
+  pm2_5                         Particulate matter < 2.5 µm (µg/m³)
+  carbon_monoxide               Carbon monoxide CO (µg/m³)
+  nitrogen_dioxide              Nitrogen dioxide NO₂ (µg/m³)
+  sulphur_dioxide               Sulphur dioxide SO₂ (µg/m³)
+  ozone                         Ozone O₃ (µg/m³)
+  carbon_dioxide                Carbon dioxide CO₂ (ppm) -- CAMS Europe only
+  ammonia                       Ammonia NH₃ (µg/m³) -- CAMS Europe only
+  methane                       Methane CH₄ (µg/m³)
+  nitrogen_monoxide             Nitrogen monoxide NO (µg/m³)
+  formaldehyde                  Formaldehyde CH₂O (µg/m³)
+  peroxyacyl_nitrates           Peroxyacyl nitrates PAN (µg/m³)
+  non_methane_volatile_organic_compounds  NMVOCs (µg/m³)
+  pm10_wildfires                PM₁₀ from wildfires (µg/m³)
+  sea_salt_aerosol              Sea salt aerosol (µg/m³)
+
+Air Quality Indices:
+  european_aqi                  European AQI (0-500+)
+  us_aqi                        US AQI (0-500+)
+  european_aqi_pm2_5            EU sub-index for PM₂.₅
+  european_aqi_pm10             EU sub-index for PM₁₀
+  european_aqi_nitrogen_dioxide EU sub-index for NO₂
+  european_aqi_ozone            EU sub-index for O₃
+  european_aqi_sulphur_dioxide  EU sub-index for SO₂
+  us_aqi_pm2_5                  US sub-index for PM₂.₅
+  us_aqi_pm10                   US sub-index for PM₁₀
+  us_aqi_nitrogen_dioxide       US sub-index for NO₂
+  us_aqi_ozone                  US sub-index for O₃
+  us_aqi_sulphur_dioxide        US sub-index for SO₂
+  us_aqi_carbon_monoxide        US sub-index for CO
+
+Other:
+  aerosol_optical_depth         Aerosol optical depth (dimensionless)
+  dust                          Saharan dust aerosol (µg/m³)
+  uv_index                      UV index
+  uv_index_clear_sky            UV index under clear sky
+
+Pollen (Europe only, seasonal):
+  alder_pollen                  Alder pollen (grains/m³)
+  birch_pollen                  Birch pollen (grains/m³)
+  grass_pollen                  Grass pollen (grains/m³)
+  mugwort_pollen                Mugwort pollen (grains/m³)
+  olive_pollen                  Olive pollen (grains/m³)
+  ragweed_pollen                Ragweed pollen (grains/m³)
+
+Note: This API does NOT have daily variables. Use --hourly-params only.
+
+Usage: --hourly-params=pm10,pm2_5,european_aqi,ozone,uv_index
+EOF
+}
+
+_aq_help_current_params() {
+  cat <<'EOF'
+Current variables for 'openmeteo air-quality':
+
+  Same variables as hourly (see: openmeteo air-quality help --hourly-params).
+  Current conditions are a snapshot of the latest available data.
+
+Usage: --current-params=european_aqi,us_aqi,pm10,pm2_5,ozone,uv_index
+EOF
+}
+
+_aq_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params)  _aq_help_hourly_params  | _format_param_help "${fmt}" ;;
+    --current-params) _aq_help_current_params | _format_param_help "${fmt}" ;;
+    "")               _aq_help ;;
+    *)                _error "unknown help topic: ${topic}"; echo; _aq_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -444,8 +535,14 @@ _aq_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_air_quality() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _aq_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local current="false" forecast_days="${DEFAULT_AQ_FORECAST_DAYS}"
+  local forecast_since=""
   local past_days="${DEFAULT_AQ_PAST_DAYS}"
   local hourly_params="" daily_params="" current_params=""
   local domains="${DEFAULT_AQ_DOMAINS}"
@@ -461,6 +558,7 @@ cmd_air_quality() {
       --country=*)          country=$(_extract_value "$1") ;;
       --current)            current="true" ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
+      --forecast-since=*)   forecast_since=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
       --hourly-params=*)    hourly_params=$(_extract_value "$1") ;;
       --daily-params=*)     daily_params=$(_extract_value "$1") ;;
@@ -486,6 +584,13 @@ cmd_air_quality() {
   # -----------------------------------------------------------------------
   # Validate inputs
   # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _validate_integer "--forecast-since" "${forecast_since}" 1
+    if [[ -n "${start_date}" ]]; then
+      _die "--forecast-since and --start-date are mutually exclusive"
+    fi
+  fi
+
   _validate_aq_inputs \
     "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
     "${domains}" "${cell_selection}" \
@@ -528,6 +633,16 @@ cmd_air_quality() {
     else
       hourly_params="${DEFAULT_AQ_HOURLY_PARAMS}"
     fi
+  fi
+
+  # -----------------------------------------------------------------------
+  # Resolve --forecast-since into start_date/end_date
+  # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _resolve_forecast_since "${forecast_since}" "${forecast_days}" 5
+    start_date="${FORECAST_START_DATE}"
+    end_date="${FORECAST_END_DATE}"
+    forecast_days=""
   fi
 
   # -----------------------------------------------------------------------

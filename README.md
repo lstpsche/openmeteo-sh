@@ -28,6 +28,8 @@ $ openmeteo weather --current --city=London
 - **Verbose input validation** — helpful error messages before any API call
 - **Commercial API key support** — via env var or `--api-key` flag
 - **Zero-bloat** — only `bash`, `curl`, and `jq`; no Python, no Node, no compiled binaries
+- **`--forecast-since=N`** — skip to day N of the forecast without date math
+- **Built-in variable reference** — `openmeteo <cmd> help --daily-params` lists every variable
 - **Colored, emoji-rich output** — grouped by day, auto-disabled when piped
 
 ---
@@ -47,6 +49,8 @@ $ openmeteo weather --current --city=London
   - [flood](#flood)
   - [elevation](#elevation)
   - [satellite](#satellite)
+- [Forecast Window: `--forecast-since`](#forecast-window---forecast-since)
+- [Detailed Help](#detailed-help)
 - [Output Formats](#output-formats)
 - [API Key / Commercial Access](#api-key--commercial-access)
 - [Examples Cookbook](#examples-cookbook)
@@ -108,8 +112,8 @@ sudo apt install openmeteo-sh
 Or download a `.deb` directly from the [latest release](https://github.com/lstpsche/openmeteo-sh/releases/latest):
 
 ```bash
-curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.2.0/openmeteo-sh_1.2.0-1_all.deb
-sudo dpkg -i openmeteo-sh_1.2.0-1_all.deb
+curl -LO https://github.com/lstpsche/openmeteo-sh/releases/download/1.3.0/openmeteo-sh_1.3.0-1_all.deb
+sudo dpkg -i openmeteo-sh_1.3.0-1_all.deb
 sudo apt-get install -f   # install dependencies (jq, curl)
 ```
 
@@ -185,8 +189,14 @@ openmeteo air-quality --current --city=Tokyo
 # Machine-readable output (for scripts/agents)
 openmeteo weather --current --city=London --porcelain
 
+# Skip to day 3 of a 7-day forecast
+openmeteo weather --forecast-days=7 --forecast-since=3 --city=London
+
 # Compact output for AI agents / LLMs (minimal tokens)
 openmeteo weather --current --forecast-days=2 --city=London --llm
+
+# List available daily variables for the weather command
+openmeteo weather help --daily-params
 
 # Raw JSON (for piping to jq)
 openmeteo weather --current --city=London --raw | jq '.current.temperature_2m'
@@ -212,6 +222,17 @@ These flags work with every subcommand:
 | `--help`        | Show help for the command                                   |
 | `--version`     | Show version                                                |
 
+All commands also accept `help` as a positional argument:
+
+```bash
+openmeteo weather help                              # same as --help
+openmeteo weather help --daily-params               # list available daily variables with descriptions
+openmeteo weather help --hourly-params              # list available hourly variables
+openmeteo weather help --current-params             # list available current variables
+openmeteo weather help --daily-params --porcelain   # machine-parseable name=description
+openmeteo weather help --daily-params --llm         # compact TSV for AI agents
+```
+
 ### weather
 
 Weather forecast — up to 16 days of hourly and daily data, plus current conditions.
@@ -221,6 +242,12 @@ openmeteo weather --current --city=London
 openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
 openmeteo weather --current --forecast-days=2 --city=Vienna \
   --hourly-params=precipitation,precipitation_probability,weather_code
+
+# Forecast starting from day 3 (skip today and tomorrow)
+openmeteo weather --forecast-days=7 --forecast-since=3 --city=London
+
+# List all available daily variables
+openmeteo weather help --daily-params
 ```
 
 **Key options:**
@@ -232,6 +259,7 @@ openmeteo weather --current --forecast-days=2 --city=Vienna \
 | `--country=CODE`           | Narrow city search (e.g. `GB`)       | —                      |
 | `--current`                | Include current conditions           | off                    |
 | `--forecast-days=N`        | Days of forecast (0–16)              | 7                      |
+| `--forecast-since=N`       | Start from day N (1=today)           | —                      |
 | `--past-days=N`            | Include past days (0–92)             | 0                      |
 | `--hourly-params=LIST`     | Hourly variables (comma-separated)   | sensible defaults      |
 | `--daily-params=LIST`      | Daily variables (comma-separated)    | sensible defaults      |
@@ -241,6 +269,8 @@ openmeteo weather --current --forecast-days=2 --city=Vienna \
 | `--precipitation-unit=UNIT`| `mm` or `inch`                       | mm                     |
 | `--timezone=TZ`            | IANA timezone or `auto`              | auto                   |
 | `--model=MODEL`            | Weather model                        | best_match             |
+
+> **Tip:** Run `openmeteo weather help --hourly-params` or `--daily-params` to see the full list of available variables with descriptions.
 
 ### geo
 
@@ -287,12 +317,13 @@ openmeteo ensemble --lat=52.52 --lon=13.41 --models=gfs_seamless \
   --hourly-params=temperature_2m,precipitation --forecast-days=10
 ```
 
-| Option             | Description                                 | Default |
-|--------------------|---------------------------------------------|---------|
-| `--models=LIST`    | Ensemble model(s) — **required**            | —       |
-| `--forecast-days=N`| Days of forecast (0–35)                     | 7       |
-| `--hourly-params`  | Hourly variables                            | defaults|
-| `--daily-params`   | Daily variables                             | —       |
+| Option               | Description                                 | Default |
+|----------------------|---------------------------------------------|---------|
+| `--models=LIST`      | Ensemble model(s) — **required**            | —       |
+| `--forecast-days=N`  | Days of forecast (0–35)                     | 7       |
+| `--forecast-since=N` | Start from day N (1=today)                  | —       |
+| `--hourly-params`    | Hourly variables                            | defaults|
+| `--daily-params`     | Daily variables                             | —       |
 
 **Available models:** `icon_seamless`, `icon_global`, `icon_eu`, `icon_d2`, `gfs_seamless`, `gfs025`, `gfs05`, `gfs_graphcast025`, `ecmwf_ifs025`, `ecmwf_aifs025`, `gem_global`, `bom_access_global_ensemble`, `ukmo_seamless`, `ukmo_global_ensemble_20km`, `ukmo_uk_ensemble_2km`, `meteoswiss_icon_ch1`, `meteoswiss_icon_ch2`
 
@@ -327,12 +358,13 @@ openmeteo marine --forecast-days=3 --city=Hamburg \
   --hourly-params=wave_height,wave_direction,sea_surface_temperature
 ```
 
-| Option              | Description                    | Default    |
-|---------------------|--------------------------------|------------|
-| `--current`         | Include current conditions     | off        |
-| `--forecast-days=N` | Days of forecast (0–16)        | 7          |
-| `--length-unit=UNIT`| `metric` or `imperial`         | metric     |
-| `--model=MODEL`     | `best_match`, `ecmwf_wam`, `era5_ocean`, etc. | best_match |
+| Option                | Description                    | Default    |
+|-----------------------|--------------------------------|------------|
+| `--current`           | Include current conditions     | off        |
+| `--forecast-days=N`   | Days of forecast (0–16)        | 7          |
+| `--forecast-since=N`  | Start from day N (1=today)     | —          |
+| `--length-unit=UNIT`  | `metric` or `imperial`         | metric     |
+| `--model=MODEL`       | `best_match`, `ecmwf_wam`, `era5_ocean`, etc. | best_match |
 
 **Key variables:** `wave_height`, `wave_direction`, `wave_period`, `swell_wave_height`, `ocean_current_velocity`, `sea_surface_temperature`, `sea_level_height_msl`
 
@@ -346,11 +378,12 @@ openmeteo air-quality --current --city=Paris \
   --hourly-params=pm10,pm2_5,european_aqi,ozone
 ```
 
-| Option              | Description                         | Default  |
-|---------------------|-------------------------------------|----------|
-| `--current`         | Include current conditions          | off      |
-| `--forecast-days=N` | Days of forecast (0–7)              | 5        |
-| `--domains=DOMAIN`  | `auto`, `cams_europe`, `cams_global`| auto     |
+| Option                | Description                         | Default  |
+|-----------------------|-------------------------------------|----------|
+| `--current`           | Include current conditions          | off      |
+| `--forecast-days=N`   | Days of forecast (0–7)              | 5        |
+| `--forecast-since=N`  | Start from day N (1=today)          | —        |
+| `--domains=DOMAIN`    | `auto`, `cams_europe`, `cams_global`| auto     |
 
 **Key variables:** `pm10`, `pm2_5`, `ozone`, `nitrogen_dioxide`, `european_aqi`, `us_aqi`, `uv_index`, `alder_pollen`, `birch_pollen`, `grass_pollen`
 
@@ -365,12 +398,13 @@ openmeteo flood --city=Oslo --forecast-days=30
 openmeteo flood --lat=48.85 --lon=2.35 --daily-params=river_discharge,river_discharge_max
 ```
 
-| Option              | Description                          | Default      |
-|---------------------|--------------------------------------|--------------|
-| `--forecast-days=N` | Days of forecast (0–210)             | 92           |
-| `--daily-params`    | Daily variables                      | defaults     |
-| `--ensemble`        | Return all 50 ensemble members       | off          |
-| `--model=MODEL`     | `seamless_v4`, `forecast_v4`, `consolidated_v4`, etc. | seamless_v4 |
+| Option                | Description                          | Default      |
+|-----------------------|--------------------------------------|--------------|
+| `--forecast-days=N`   | Days of forecast (0–210)             | 92           |
+| `--forecast-since=N`  | Start from day N (1=today)           | —            |
+| `--daily-params`      | Daily variables                      | defaults     |
+| `--ensemble`          | Return all 50 ensemble members       | off          |
+| `--model=MODEL`       | `seamless_v4`, `forecast_v4`, `consolidated_v4`, etc. | seamless_v4 |
 
 **Variables:** `river_discharge`, `river_discharge_mean`, `river_discharge_median`, `river_discharge_max`, `river_discharge_min`, `river_discharge_p25`, `river_discharge_p75`
 
@@ -414,6 +448,60 @@ openmeteo satellite --lat=48.2 --lon=16.4 --hourly-params=global_tilted_irradian
 **Key variables:** `shortwave_radiation`, `direct_radiation`, `diffuse_radiation`, `direct_normal_irradiance`, `global_tilted_irradiance` (requires `--tilt` and `--azimuth`), `terrestrial_radiation` — each also available as `*_instant`
 
 > **Note:** NASA GOES is not yet integrated. North American data uses NWP fallback only.
+
+---
+
+## Forecast Window: `--forecast-since`
+
+Skip to any day within the forecast window without doing date math yourself.
+Day 1 means **today**, day 2 = tomorrow, and so on.
+
+```bash
+# 7-day forecast starting from day 3 (today + 2 days)
+openmeteo weather --forecast-days=7 --forecast-since=3 --city=London
+
+# Just day 5 (a single day)
+openmeteo weather --forecast-days=5 --forecast-since=5 --city=Berlin
+
+# Works with any forecasting command
+openmeteo marine --forecast-days=10 --forecast-since=4 --lat=54.54 --lon=10.23
+openmeteo air-quality --forecast-since=2 --city=Paris
+openmeteo flood --forecast-days=30 --forecast-since=7 --city=Oslo
+openmeteo ensemble --forecast-days=14 --forecast-since=3 --city=Tokyo --models=icon_seamless
+```
+
+**Rules:**
+- `N` must be ≥ 1 and ≤ `--forecast-days`
+- Mutually exclusive with `--start-date`
+- Available for: `weather`, `ensemble`, `marine`, `air-quality`, `flood`
+
+Under the hood, `--forecast-since=N` is converted to the API's `start_date` / `end_date` parameters (no data is trimmed client-side).
+
+---
+
+## Detailed Help
+
+Every command supports a `help` subcommand that can show detailed variable lists:
+
+```bash
+openmeteo weather help                   # general weather help
+openmeteo weather help --daily-params    # list all daily variables with descriptions
+openmeteo weather help --hourly-params   # list all hourly variables
+openmeteo weather help --current-params  # list all current variables
+openmeteo ensemble help --daily-params
+openmeteo air-quality help --hourly-params
+openmeteo climate help --daily-params
+```
+
+The param lists are grouped by category (temperature, wind, precipitation, etc.) and include units where applicable.
+
+Output format flags work with help too:
+
+```bash
+openmeteo weather help --daily-params                # human-friendly (default, grouped by category)
+openmeteo weather help --daily-params --porcelain    # name=description (one per line)
+openmeteo weather help --daily-params --llm          # TSV table (variable → description)
+```
 
 ---
 
@@ -745,10 +833,13 @@ openmeteo-sh/
 1. Create `commands/<name>.sh` with a `cmd_<name>` function.
 2. Add a `case` entry in the `openmeteo` entrypoint.
 3. Add help text to the main `--help` output.
-4. Implement all four output formats (human, porcelain, llm, raw).
-5. Add verbose input validation before API calls.
-6. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
-7. Test all success and failure paths manually.
+4. Add `help` subcommand dispatch with `_<name>_help_topic()`.
+5. Add detailed param help functions (`_<name>_help_hourly_params`, etc.) if the command has variable selection.
+6. Implement all four output formats (human, porcelain, llm, raw).
+7. Add verbose input validation before API calls.
+8. If the command supports forecasts, add `--forecast-since=N` parsing and conversion.
+9. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
+10. Test all success and failure paths manually.
 
 ### Code style
 

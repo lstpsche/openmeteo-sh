@@ -30,6 +30,7 @@ Data selection:
   --daily                 Include daily forecast (default params)
   --hourly                Include hourly forecast (default params)
   --forecast-days=N       Forecast length in days (0-16, default: 7)
+  --forecast-since=N      Start forecast from day N (1=today, 2=tomorrow, ...)
   --past-days=N           Include past days (0-92)
   --start-date=YYYY-MM-DD  Start of custom date range (overrides forecast-days)
   --end-date=YYYY-MM-DD    End of custom date range
@@ -60,9 +61,198 @@ Examples:
   openmeteo weather --hourly --city=Vienna                # hourly only, default params
   openmeteo weather --daily --hourly --city=Berlin        # both daily and hourly
   openmeteo weather --start-date=2026-02-15 --end-date=2026-02-18 --city=London
+  openmeteo weather --forecast-days=7 --forecast-since=3 --city=London
   openmeteo weather --forecast-days=2 --city=Vienna \\
     --hourly-params=precipitation,precipitation_probability,weather_code
+
+Detailed help:
+  openmeteo weather help --hourly-params   List available hourly variables
+  openmeteo weather help --daily-params    List available daily variables
+  openmeteo weather help --current-params  List available current variables
 EOF
+}
+
+# ---------------------------------------------------------------------------
+# Detailed param help
+# ---------------------------------------------------------------------------
+
+_weather_help_hourly_params() {
+  cat <<'EOF'
+Hourly variables for 'openmeteo weather':
+
+Temperature & Humidity:
+  temperature_2m                Air temperature at 2m height
+  relative_humidity_2m          Relative humidity at 2m
+  dew_point_2m                  Dew point at 2m
+  apparent_temperature          Feels-like temperature (wind chill / heat index)
+  wet_bulb_temperature_2m       Wet bulb temperature at 2m
+
+Precipitation:
+  precipitation                 Total precipitation (rain + showers + snow)
+  precipitation_probability     Probability of precipitation (%)
+  rain                          Rain amount
+  showers                       Convective precipitation (short, intense)
+  snowfall                      Snowfall amount (cm)
+  snow_depth                    Snow depth on ground (m)
+
+Weather:
+  weather_code                  WMO weather interpretation code
+  cloud_cover                   Total cloud cover (%)
+  cloud_cover_low               Low-level cloud cover (%)
+  cloud_cover_mid               Mid-level cloud cover (%)
+  cloud_cover_high              High-level cloud cover (%)
+  visibility                    Horizontal visibility (m)
+  is_day                        1 if daytime, 0 if night
+
+Pressure:
+  pressure_msl                  Mean sea level pressure (hPa)
+  surface_pressure              Surface pressure (hPa)
+
+Wind:
+  wind_speed_10m                Wind speed at 10m (km/h)
+  wind_speed_80m                Wind speed at 80m
+  wind_speed_120m               Wind speed at 120m
+  wind_speed_180m               Wind speed at 180m
+  wind_direction_10m            Wind direction at 10m (degrees)
+  wind_direction_80m            Wind direction at 80m
+  wind_direction_120m           Wind direction at 120m
+  wind_direction_180m           Wind direction at 180m
+  wind_gusts_10m                Wind gusts at 10m
+
+Temperature at Height:
+  temperature_80m               Temperature at 80m
+  temperature_120m              Temperature at 120m
+  temperature_180m              Temperature at 180m
+
+Solar Radiation:
+  shortwave_radiation           Global horizontal irradiance (W/m²)
+  direct_radiation              Direct beam radiation (W/m²)
+  diffuse_radiation             Diffuse horizontal irradiance (W/m²)
+  direct_normal_irradiance      Direct normal irradiance DNI (W/m²)
+  global_tilted_irradiance      Tilted surface irradiance (W/m²)
+  terrestrial_radiation         Terrestrial long-wave radiation (W/m²)
+  sunshine_duration             Seconds of sunshine per hour
+
+Soil:
+  soil_temperature_0cm          Soil temperature at surface
+  soil_temperature_6cm          Soil temperature at 6cm depth
+  soil_temperature_18cm         Soil temperature at 18cm depth
+  soil_temperature_54cm         Soil temperature at 54cm depth
+  soil_moisture_0_to_1cm        Soil moisture 0-1cm (m³/m³)
+  soil_moisture_1_to_3cm        Soil moisture 1-3cm
+  soil_moisture_3_to_9cm        Soil moisture 3-9cm
+  soil_moisture_9_to_27cm       Soil moisture 9-27cm
+  soil_moisture_27_to_81cm      Soil moisture 27-81cm
+
+Evapotranspiration:
+  evapotranspiration            Actual evapotranspiration (mm)
+  et0_fao_evapotranspiration    Reference ET₀ (FAO method)
+  vapour_pressure_deficit       Vapour pressure deficit (kPa)
+
+Atmosphere:
+  cape                          Convective Available Potential Energy (J/kg)
+  lifted_index                  Atmospheric instability index
+  convective_inhibition         Convective inhibition CIN (J/kg)
+  freezing_level_height         Height of 0°C isotherm (m)
+  boundary_layer_height         Planetary boundary layer height (m)
+
+UV:
+  uv_index                      UV index
+  uv_index_clear_sky            UV index under clear sky conditions
+
+Usage: --hourly-params=temperature_2m,precipitation,weather_code
+EOF
+}
+
+_weather_help_daily_params() {
+  cat <<'EOF'
+Daily variables for 'openmeteo weather':
+
+Temperature:
+  temperature_2m_max            Maximum daily temperature
+  temperature_2m_min            Minimum daily temperature
+  apparent_temperature_max      Maximum daily feels-like temperature
+  apparent_temperature_min      Minimum daily feels-like temperature
+
+Precipitation:
+  precipitation_sum             Total daily precipitation (mm)
+  rain_sum                      Total daily rain (mm)
+  showers_sum                   Total daily convective precipitation (mm)
+  snowfall_sum                  Total daily snowfall (cm)
+  precipitation_hours           Hours with precipitation
+  precipitation_probability_max Max precipitation probability (%)
+  precipitation_probability_min Min precipitation probability (%)
+  precipitation_probability_mean Mean precipitation probability (%)
+
+Wind:
+  wind_speed_10m_max            Maximum daily wind speed at 10m
+  wind_gusts_10m_max            Maximum daily wind gusts at 10m
+  wind_direction_10m_dominant   Dominant wind direction at 10m (degrees)
+
+Sun & Daylight:
+  weather_code                  WMO code for dominant weather
+  sunrise                       Sunrise time (ISO 8601)
+  sunset                        Sunset time (ISO 8601)
+  daylight_duration             Daylight duration (seconds)
+  sunshine_duration             Sunshine duration (seconds)
+
+UV:
+  uv_index_max                  Maximum daily UV index
+  uv_index_clear_sky_max        Maximum UV index under clear sky
+
+Radiation & Evapotranspiration:
+  shortwave_radiation_sum       Total daily solar radiation (MJ/m²)
+  et0_fao_evapotranspiration    Daily reference ET₀ (mm)
+
+Usage: --daily-params=temperature_2m_max,temperature_2m_min,precipitation_sum
+EOF
+}
+
+_weather_help_current_params() {
+  cat <<'EOF'
+Current variables for 'openmeteo weather':
+
+  temperature_2m                Current temperature at 2m
+  relative_humidity_2m          Current relative humidity at 2m
+  apparent_temperature          Current feels-like temperature
+  is_day                        1 if daytime, 0 if night
+  weather_code                  WMO weather interpretation code
+  cloud_cover                   Current cloud cover (%)
+  pressure_msl                  Mean sea level pressure (hPa)
+  surface_pressure              Surface pressure (hPa)
+  wind_speed_10m                Current wind speed at 10m
+  wind_direction_10m            Current wind direction at 10m (degrees)
+  wind_gusts_10m                Current wind gusts at 10m
+  precipitation                 Current precipitation (mm)
+  rain                          Current rain (mm)
+  showers                       Current convective precipitation (mm)
+  snowfall                      Current snowfall (cm)
+
+Note: Current conditions are a snapshot of the latest available data
+(typically updated every 15 minutes).
+
+Usage: --current-params=temperature_2m,relative_humidity_2m,weather_code
+EOF
+}
+
+_weather_help_topic() {
+  local topic="" fmt="human"
+  for arg in "$@"; do
+    case "${arg}" in
+      --porcelain) fmt="porcelain" ;;
+      --llm)       fmt="llm" ;;
+      --raw)       fmt="raw" ;;
+      *)           topic="${arg}" ;;
+    esac
+  done
+
+  case "${topic}" in
+    --hourly-params)  _weather_help_hourly_params | _format_param_help "${fmt}" ;;
+    --daily-params)   _weather_help_daily_params  | _format_param_help "${fmt}" ;;
+    --current-params) _weather_help_current_params | _format_param_help "${fmt}" ;;
+    "")               _weather_help ;;
+    *)                _error "unknown help topic: ${topic}"; echo; _weather_help ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -263,8 +453,14 @@ _weather_output_porcelain() {
 # Command entry point
 # ---------------------------------------------------------------------------
 cmd_weather() {
+  # Handle 'help' subcommand
+  if [[ "${1:-}" == "help" ]]; then
+    shift; _weather_help_topic "$@"; return 0
+  fi
+
   local lat="" lon="" city="" country=""
   local current="false" forecast_days="${DEFAULT_FORECAST_DAYS}"
+  local forecast_since=""
   local past_days="${DEFAULT_PAST_DAYS}"
   local include_daily="false" include_hourly="false"
   local hourly_params="" daily_params="" current_params=""
@@ -285,6 +481,7 @@ cmd_weather() {
       --daily)              include_daily="true" ;;
       --hourly)             include_hourly="true" ;;
       --forecast-days=*)    forecast_days=$(_extract_value "$1") ;;
+      --forecast-since=*)   forecast_since=$(_extract_value "$1") ;;
       --past-days=*)        past_days=$(_extract_value "$1") ;;
       --start-date=*)       start_date=$(_extract_value "$1") ;;
       --end-date=*)         end_date=$(_extract_value "$1") ;;
@@ -312,6 +509,14 @@ cmd_weather() {
   # -----------------------------------------------------------------------
   # Validate inputs
   # -----------------------------------------------------------------------
+  # Forecast-since validation
+  if [[ -n "${forecast_since}" ]]; then
+    _validate_integer "--forecast-since" "${forecast_since}" 1
+    if [[ -n "${start_date}" ]]; then
+      _die "--forecast-since and --start-date are mutually exclusive"
+    fi
+  fi
+
   _validate_weather_inputs \
     "${lat}" "${lon}" "${forecast_days}" "${past_days}" \
     "${temperature_unit}" "${wind_speed_unit}" "${precipitation_unit}" \
@@ -363,6 +568,16 @@ cmd_weather() {
     else
       hourly_params="${DEFAULT_HOURLY_PARAMS}"
     fi
+  fi
+
+  # -----------------------------------------------------------------------
+  # Resolve --forecast-since into start_date/end_date
+  # -----------------------------------------------------------------------
+  if [[ -n "${forecast_since}" ]]; then
+    _resolve_forecast_since "${forecast_since}" "${forecast_days}" 7
+    start_date="${FORECAST_START_DATE}"
+    end_date="${FORECAST_END_DATE}"
+    forecast_days=""  # use date range instead
   fi
 
   # -----------------------------------------------------------------------

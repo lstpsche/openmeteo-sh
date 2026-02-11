@@ -69,7 +69,8 @@ Examples:
   openmeteo weather --current --city=Tokyo --porcelain
   openmeteo elevation --lat=47.37 --lon=8.55
 
-Run 'openmeteo <command> --help' for command-specific help.
+Run 'openmeteo <command> help' for command-specific help.
+Run 'openmeteo <command> help --daily-params' for available variables.
 EOF
 }
 

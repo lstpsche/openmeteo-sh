@@ -45,6 +45,7 @@ _openmeteo() {
             '--daily[Include daily forecast (default params)]' \
             '--hourly[Include hourly forecast (default params)]' \
             '--forecast-days=[Forecast days (0-16)]:days' \
+            '--forecast-since=[Start from day N (1=today)]:day' \
             '--past-days=[Past days (0-92)]:days' \
             '--start-date=[Start of custom date range (YYYY-MM-DD)]:date' \
             '--end-date=[End of custom date range (YYYY-MM-DD)]:date' \
@@ -106,6 +107,7 @@ _openmeteo() {
             '--hourly-params=[Hourly variables]:params' \
             '--daily-params=[Daily variables]:params' \
             '--forecast-days=[Forecast days (0-35)]:days' \
+            '--forecast-since=[Start from day N (1=today)]:day' \
             '--past-days=[Past days]:days' \
             '--start-date=[Start date]:date' \
             '--end-date=[End date]:date' \
@@ -149,6 +151,7 @@ _openmeteo() {
             '--country=[Country code]:code' \
             '--current[Include current conditions]' \
             '--forecast-days=[Forecast days (0-8)]:days' \
+            '--forecast-since=[Start from day N (1=today)]:day' \
             '--past-days=[Past days (0-92)]:days' \
             '--hourly-params=[Hourly variables]:params' \
             '--daily-params=[Daily variables]:params' \
@@ -174,6 +177,7 @@ _openmeteo() {
             '--country=[Country code]:code' \
             '--current[Include current conditions]' \
             '--forecast-days=[Forecast days (0-7)]:days' \
+            '--forecast-since=[Start from day N (1=today)]:day' \
             '--past-days=[Past days (0-92)]:days' \
             '--hourly-params=[Hourly variables]:params' \
             '--daily-params=[Daily variables]:params' \
@@ -196,6 +200,7 @@ _openmeteo() {
             '--city=[City name]:city' \
             '--country=[Country code]:code' \
             '--forecast-days=[Forecast days (0-210)]:days' \
+            '--forecast-since=[Start from day N (1=today)]:day' \
             '--past-days=[Past days]:days' \
             '--daily-params=[Daily variables]:params' \
             '--model=[GloFAS model]:model' \
