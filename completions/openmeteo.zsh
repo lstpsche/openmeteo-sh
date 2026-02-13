@@ -16,10 +16,12 @@ _openmeteo() {
     'flood:River discharge / flood forecasts'
     'elevation:Terrain elevation lookup'
     'satellite:Satellite solar radiation data'
+    'config:Manage configuration file'
   )
 
   _arguments -C \
     '--api-key=[OpenMeteo API key]:key' \
+    '--human[Human-friendly output (override config)]' \
     '--porcelain[Machine-parseable output]' \
     '--llm[Compact TSV output for AI agents]' \
     '--raw[Raw JSON output]' \
@@ -58,6 +60,7 @@ _openmeteo() {
             '--timezone=[Timezone]:tz' \
             '--model=[Weather model]:model' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -70,6 +73,7 @@ _openmeteo() {
             '--language=[Result language]:lang' \
             '--country=[Country filter]:code' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -92,6 +96,7 @@ _openmeteo() {
             '--model=[Reanalysis model]:model' \
             '--cell-selection=[Grid cell selection]:mode:(land sea nearest)' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -117,6 +122,7 @@ _openmeteo() {
             '--timezone=[Timezone]:tz' \
             '--cell-selection=[Grid cell selection]:mode:(land sea nearest)' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -138,6 +144,7 @@ _openmeteo() {
             '--cell-selection=[Grid cell selection]:mode:(land sea nearest)' \
             '--disable-bias-correction[Disable statistical downscaling]' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -164,6 +171,7 @@ _openmeteo() {
             '--start-date=[Start date]:date' \
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -188,6 +196,7 @@ _openmeteo() {
             '--start-date=[Start date]:date' \
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -209,6 +218,7 @@ _openmeteo() {
             '--start-date=[Start date]:date' \
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -221,6 +231,7 @@ _openmeteo() {
             '--city=[City name]:city' \
             '--country=[Country code]:code' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
@@ -245,10 +256,15 @@ _openmeteo() {
             '--start-date=[Start date]:date' \
             '--end-date=[End date]:date' \
             '--api-key=[API key]:key' \
+            '--human[Human-friendly output]' \
             '--porcelain[Machine-parseable output]' \
             '--llm[Compact TSV output for AI agents]' \
             '--raw[Raw JSON output]' \
             '--help[Show help]'
+          ;;
+        config)
+          _arguments \
+            '1:action:(help init show path set unset get)'
           ;;
       esac
       ;;

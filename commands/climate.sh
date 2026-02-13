@@ -134,6 +134,7 @@ _climate_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -592,6 +593,7 @@ cmd_climate() {
       --cell-selection=*)   cell_selection=$(_extract_value "$1") ;;
       --disable-bias-correction) disable_bias_correction="true" ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -601,6 +603,10 @@ cmd_climate() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_units
 
   _init_api_key
 

@@ -168,6 +168,7 @@ _history_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -373,7 +374,7 @@ cmd_history() {
   local temperature_unit="${DEFAULT_HISTORY_TEMPERATURE_UNIT}"
   local wind_speed_unit="${DEFAULT_HISTORY_WIND_SPEED_UNIT}"
   local precipitation_unit="${DEFAULT_HISTORY_PRECIPITATION_UNIT}"
-  local timezone="${DEFAULT_HISTORY_TIMEZONE}"
+  local timezone=""
   local model="" cell_selection=""
 
   while [[ $# -gt 0 ]]; do
@@ -393,6 +394,7 @@ cmd_history() {
       --model=*)            model=$(_extract_value "$1") ;;
       --cell-selection=*)   cell_selection=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -402,6 +404,11 @@ cmd_history() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_units
+  _apply_config_timezone
 
   _init_api_key
 

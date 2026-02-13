@@ -30,6 +30,7 @@ $ openmeteo weather --current --city=London
 - **Zero-bloat** — only `bash`, `curl`, and `jq`; no Python, no Node, no compiled binaries
 - **`--forecast-since=N`** — skip to day N of the forecast without date math
 - **Built-in variable reference** — `openmeteo <cmd> help --daily-params` lists every variable
+- **Persistent configuration** — set defaults for city, units, format via `openmeteo config`
 - **Colored, emoji-rich output** — grouped by day, auto-disabled when piped
 
 ---
@@ -49,9 +50,11 @@ $ openmeteo weather --current --city=London
   - [flood](#flood)
   - [elevation](#elevation)
   - [satellite](#satellite)
+  - [config](#config)
 - [Forecast Window: `--forecast-since`](#forecast-window---forecast-since)
 - [Detailed Help](#detailed-help)
 - [Output Formats](#output-formats)
+- [Configuration](#configuration)
 - [API Key / Commercial Access](#api-key--commercial-access)
 - [Examples Cookbook](#examples-cookbook)
 - [Known Quirks & Limitations](#known-quirks--limitations)
@@ -195,6 +198,10 @@ openmeteo weather --forecast-days=7 --forecast-since=3 --city=London
 # Compact output for AI agents / LLMs (minimal tokens)
 openmeteo weather --current --forecast-days=2 --city=London --llm
 
+# Set a default city so you don't have to type it every time
+openmeteo config set city=London
+openmeteo weather --current   # uses London from config
+
 # List available daily variables for the weather command
 openmeteo weather help --daily-params
 
@@ -215,6 +222,7 @@ These flags work with every subcommand:
 | Flag            | Description                                                 |
 |-----------------|-------------------------------------------------------------|
 | `--api-key=KEY` | Open-Meteo commercial API key (overrides `OPENMETEO_API_KEY`) |
+| `--human`       | Human-friendly output (override config `format`)            |
 | `--porcelain`   | Machine-parseable `key=value` output                        |
 | `--llm`         | Compact TSV output optimized for AI agents (minimal tokens) |
 | `--raw`         | Raw JSON from the API                                       |
@@ -449,6 +457,31 @@ openmeteo satellite --lat=48.2 --lon=16.4 --hourly-params=global_tilted_irradian
 
 > **Note:** NASA GOES is not yet integrated. North American data uses NWP fallback only.
 
+### config
+
+Manage persistent configuration — set default location, units, output format, API key.
+
+```bash
+openmeteo config init                    # create config file with commented defaults
+openmeteo config set city=London         # set default city
+openmeteo config set temperature_unit=fahrenheit
+openmeteo config show                    # display current configuration
+openmeteo config get city                # get a single value
+openmeteo config unset city              # remove a value
+openmeteo config path                    # print config file path
+```
+
+| Action       | Description                                   |
+|--------------|-----------------------------------------------|
+| `init`       | Create config file with commented-out defaults |
+| `show`       | Display current configuration with sources     |
+| `set K=V`    | Set a configuration value                      |
+| `unset K`    | Remove a configuration value                   |
+| `get K`      | Print a single config value                    |
+| `path`       | Print config file path                         |
+
+See [Configuration](#configuration) for the full list of keys and how precedence works.
+
 ---
 
 ## Forecast Window: `--forecast-since`
@@ -597,17 +630,86 @@ openmeteo weather --current --city=London --raw | jq '.current.temperature_2m'
 
 ---
 
-## API Key / Commercial Access
+## Configuration
 
-Open-Meteo's free tier has no API key requirement. For commercial use or higher rate limits, provide your key in one of two ways:
+`openmeteo` supports a persistent config file for storing default values. This avoids repeating the same flags (city, units, API key) on every invocation.
+
+**Config file location** (first found is used):
+
+1. `$OPENMETEO_CONFIG` — if the environment variable is set
+2. `$XDG_CONFIG_HOME/openmeteo/config` — XDG standard
+3. `~/.config/openmeteo/config` — default on most systems
+
+### Getting started
 
 ```bash
+openmeteo config init   # creates the file with commented-out defaults
+openmeteo config set city=London
+openmeteo config set temperature_unit=fahrenheit
+```
+
+### Available keys
+
+| Key                  | Description                                                 | Example values              |
+|----------------------|-------------------------------------------------------------|-----------------------------|
+| `api_key`            | OpenMeteo commercial API key                                | `abc123...`                 |
+| `city`               | Default city name                                           | `London`                    |
+| `country`            | Default country code (ISO 3166-1 alpha-2)                   | `GB`                        |
+| `lat`                | Default latitude                                            | `51.5`                      |
+| `lon`                | Default longitude                                           | `-0.12`                     |
+| `format`             | Default output format                                       | `human`, `porcelain`, `llm`, `raw` |
+| `temperature_unit`   | Default temperature unit                                    | `celsius`, `fahrenheit`     |
+| `wind_speed_unit`    | Default wind speed unit                                     | `kmh`, `ms`, `mph`, `kn`   |
+| `precipitation_unit` | Default precipitation unit                                  | `mm`, `inch`                |
+| `timezone`           | Default timezone                                            | `auto`, `Europe/London`     |
+| `verbose`            | Enable verbose mode                                         | `true`, `false`             |
+
+### Precedence
+
+CLI flags always win, followed by environment variables, then config file, then built-in defaults:
+
+```
+--api-key=...  >  $OPENMETEO_API_KEY  >  config api_key  >  (none)
+--city=London  >  config city  >  (location required error)
+--porcelain    >  config format  >  human (default)
+```
+
+If your config sets `format=llm` but you want human output for a single call, pass `--human`:
+
+```bash
+openmeteo weather --current --city=London --human
+```
+
+### Config file format
+
+Simple `key = value`, one per line. Lines starting with `#` are comments:
+
+```
+# ~/.config/openmeteo/config
+api_key = your_key_here
+city = London
+country = GB
+temperature_unit = celsius
+format = human
+```
+
+---
+
+## API Key / Commercial Access
+
+Open-Meteo's free tier has no API key requirement. For commercial use or higher rate limits, provide your key via flag, environment variable, or config file:
+
+```bash
+# Via flag (highest precedence)
+openmeteo weather --current --city=London --api-key=your_key_here
+
 # Via environment variable
 export OPENMETEO_API_KEY="your_key_here"
 openmeteo weather --current --city=London
 
-# Via flag (overrides env var)
-openmeteo weather --current --city=London --api-key=your_key_here
+# Via config file (persistent)
+openmeteo config set api_key=your_key_here
+openmeteo weather --current --city=London
 ```
 
 When an API key is set, the tool automatically prefixes API hostnames with `customer-` as required by Open-Meteo (e.g., `https://customer-api.open-meteo.com/...`).
@@ -835,11 +937,12 @@ openmeteo-sh/
 3. Add help text to the main `--help` output.
 4. Add `help` subcommand dispatch with `_<name>_help_topic()`.
 5. Add detailed param help functions (`_<name>_help_hourly_params`, etc.) if the command has variable selection.
-6. Implement all four output formats (human, porcelain, llm, raw).
+6. Implement all four output formats (human, porcelain, llm, raw) and include `--human` flag.
 7. Add verbose input validation before API calls.
 8. If the command supports forecasts, add `--forecast-since=N` parsing and conversion.
-9. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
-10. Test all success and failure paths manually.
+9. After arg parsing, call `_apply_config_location` (and `_apply_config_units`, `_apply_config_timezone` if applicable).
+10. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
+11. Test all success and failure paths manually.
 
 ### Code style
 

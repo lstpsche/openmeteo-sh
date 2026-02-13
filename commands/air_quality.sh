@@ -143,6 +143,7 @@ _aq_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -546,7 +547,7 @@ cmd_air_quality() {
   local past_days="${DEFAULT_AQ_PAST_DAYS}"
   local hourly_params="" daily_params="" current_params=""
   local domains="${DEFAULT_AQ_DOMAINS}"
-  local timezone="${DEFAULT_AQ_TIMEZONE}"
+  local timezone=""
   local cell_selection=""
   local start_date="" end_date=""
 
@@ -569,6 +570,7 @@ cmd_air_quality() {
       --start-date=*)       start_date=$(_extract_value "$1") ;;
       --end-date=*)         end_date=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -578,6 +580,10 @@ cmd_air_quality() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_timezone
 
   _init_api_key
 

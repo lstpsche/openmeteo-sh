@@ -20,6 +20,10 @@ source "${SCRIPT_DIR}/lib/core.sh"
 source "${SCRIPT_DIR}/lib/output.sh"
 source "${SCRIPT_DIR}/lib/geo.sh"
 
+# Load config and apply global defaults (format, verbose)
+_load_config
+_apply_config_globals
+
 # ---------------------------------------------------------------------------
 # Help
 # ---------------------------------------------------------------------------
@@ -46,6 +50,7 @@ Commands:
   flood        River discharge / flood forecasts
   elevation    Terrain elevation lookup
   satellite    Satellite solar radiation data
+  config       Manage configuration file
 
 Output modes:
   (default)       Human-friendly: colored, with emojis, grouped by day
@@ -61,6 +66,7 @@ Global options:
 
 Environment variables:
   OPENMETEO_API_KEY   Default API key for commercial access
+  OPENMETEO_CONFIG    Override config file path (default: ~/.config/openmeteo/config)
 
 Examples:
   openmeteo weather --current --city=London
@@ -126,6 +132,10 @@ case "${command}" in
   satellite)
     source "${SCRIPT_DIR}/commands/satellite.sh"
     cmd_satellite "$@"
+    ;;
+  config)
+    source "${SCRIPT_DIR}/commands/config.sh"
+    cmd_config "$@"
     ;;
   --help|-h|help)
     _print_help

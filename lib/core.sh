@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # core.sh -- shared utilities for openmeteo CLI
 
-OPENMETEO_VERSION="1.3.0"
+OPENMETEO_VERSION="1.4.0"
 
 # Base URLs (no trailing slash)
 BASE_URL_FORECAST="https://api.open-meteo.com/v1/forecast"
@@ -20,6 +20,135 @@ API_KEY=""
 
 # Verbose mode (set via --verbose flag)
 OPENMETEO_VERBOSE=""
+
+# ---------------------------------------------------------------------------
+# Config file support
+# ---------------------------------------------------------------------------
+
+# Config globals (populated by _load_config)
+CFG_API_KEY=""
+CFG_CITY=""
+CFG_COUNTRY=""
+CFG_LAT=""
+CFG_LON=""
+CFG_FORMAT=""
+CFG_TEMPERATURE_UNIT=""
+CFG_WIND_SPEED_UNIT=""
+CFG_PRECIPITATION_UNIT=""
+CFG_TIMEZONE=""
+CFG_VERBOSE=""
+
+# All valid config keys (space-separated)
+_VALID_CONFIG_KEYS="api_key city country lat lon format temperature_unit wind_speed_unit precipitation_unit timezone verbose"
+
+# Return the config file path.
+# Priority: $OPENMETEO_CONFIG > $XDG_CONFIG_HOME/openmeteo/config > ~/.config/openmeteo/config
+_config_path() {
+  if [[ -n "${OPENMETEO_CONFIG:-}" ]]; then
+    echo "${OPENMETEO_CONFIG}"
+  else
+    echo "${XDG_CONFIG_HOME:-$HOME/.config}/openmeteo/config"
+  fi
+}
+
+# Check if a key is a valid config key.
+_is_valid_config_key() {
+  local key="$1" k
+  for k in ${_VALID_CONFIG_KEYS}; do
+    [[ "${k}" == "${key}" ]] && return 0
+  done
+  return 1
+}
+
+# Load config file and populate CFG_* globals.
+# Silently does nothing if the file doesn't exist.
+_load_config() {
+  local config_file
+  config_file="$(_config_path)"
+  [[ -f "${config_file}" ]] || return 0
+
+  local line key value line_num=0
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_num=$(( line_num + 1 ))
+    # Skip empty lines and comments
+    [[ -z "${line}" || "${line}" =~ ^[[:space:]]*# ]] && continue
+    # Strip inline comments (only after whitespace + #)
+    line="${line%%[[:space:]]#*}"
+    # Trim leading/trailing whitespace
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "${line}" ]] && continue
+
+    if [[ "${line}" =~ ^([a-z_]+)[[:space:]]*=[[:space:]]*(.*) ]]; then
+      key="${BASH_REMATCH[1]}"
+      value="${BASH_REMATCH[2]}"
+      # Strip surrounding quotes if present
+      if [[ "${value}" =~ ^\"(.*)\"$ ]] || [[ "${value}" =~ ^\'(.*)\'$ ]]; then
+        value="${BASH_REMATCH[1]}"
+      fi
+      case "${key}" in
+        api_key)            CFG_API_KEY="${value}" ;;
+        city)               CFG_CITY="${value}" ;;
+        country)            CFG_COUNTRY="${value}" ;;
+        lat)                CFG_LAT="${value}" ;;
+        lon)                CFG_LON="${value}" ;;
+        format)             CFG_FORMAT="${value}" ;;
+        temperature_unit)   CFG_TEMPERATURE_UNIT="${value}" ;;
+        wind_speed_unit)    CFG_WIND_SPEED_UNIT="${value}" ;;
+        precipitation_unit) CFG_PRECIPITATION_UNIT="${value}" ;;
+        timezone)           CFG_TIMEZONE="${value}" ;;
+        verbose)            CFG_VERBOSE="${value}" ;;
+        *) _warn "config: unknown key '${key}' at ${config_file}:${line_num} (ignored)" ;;
+      esac
+    else
+      _warn "config: invalid syntax at ${config_file}:${line_num}: ${line}"
+    fi
+  done < "${config_file}"
+}
+
+# Apply config values to global settings (format, verbose).
+# Call after _load_config, before command dispatch.
+# CLI flags in each command override these later.
+_apply_config_globals() {
+  if [[ -n "${CFG_FORMAT}" ]]; then
+    _validate_enum "config format" "${CFG_FORMAT}" human porcelain llm raw
+    OUTPUT_FORMAT="${CFG_FORMAT}"
+  fi
+  if [[ -z "${OPENMETEO_VERBOSE}" ]]; then
+    case "${CFG_VERBOSE}" in
+      true|1|yes) OPENMETEO_VERBOSE="true" ;;
+    esac
+  fi
+}
+
+# Apply config location defaults to caller's local variables.
+# Uses bash dynamic scoping (caller's locals are visible).
+# All-or-nothing: if ANY location arg was provided via CLI, skip config location
+# entirely. This prevents config country=BY from polluting --city=London.
+_apply_config_location() {
+  if [[ -n "${city:-}" || -n "${lat:-}" || -n "${lon:-}" || -n "${country:-}" ]]; then
+    return 0
+  fi
+  city="${CFG_CITY:-}"
+  country="${CFG_COUNTRY:-}"
+  lat="${CFG_LAT:-}"
+  lon="${CFG_LON:-}"
+}
+
+# Apply config unit defaults to caller's local variables.
+_apply_config_units() {
+  [[ -z "${temperature_unit:-}" ]]    && temperature_unit="${CFG_TEMPERATURE_UNIT:-}"
+  [[ -z "${wind_speed_unit:-}" ]]     && wind_speed_unit="${CFG_WIND_SPEED_UNIT:-}"
+  [[ -z "${precipitation_unit:-}" ]]  && precipitation_unit="${CFG_PRECIPITATION_UNIT:-}"
+}
+
+# Apply config timezone default to caller's local variable.
+# Falls back to "auto" if neither CLI nor config provides one.
+_apply_config_timezone() {
+  if [[ -z "${timezone:-}" ]]; then
+    timezone="${CFG_TIMEZONE:-auto}"
+  fi
+}
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -53,11 +182,14 @@ _die_usage() {
 # API key resolution
 # ---------------------------------------------------------------------------
 
-# Resolve API key: --api-key flag wins over OPENMETEO_API_KEY env var.
+# Resolve API key: --api-key flag > OPENMETEO_API_KEY env var > config file.
 # Call after argument parsing has set API_KEY from --api-key if provided.
 _resolve_api_key() {
   if [[ -z "${API_KEY}" ]]; then
     API_KEY="${OPENMETEO_API_KEY:-}"
+  fi
+  if [[ -z "${API_KEY}" ]]; then
+    API_KEY="${CFG_API_KEY:-}"
   fi
 }
 

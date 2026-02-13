@@ -143,6 +143,7 @@ cmd_geo() {
       --language=*) language=$(_extract_value "$1") ;;
       --country=*)  country=$(_extract_value "$1") ;;
       --api-key=*)  API_KEY=$(_extract_value "$1") ;;
+      --human)      OUTPUT_FORMAT="human" ;;
       --porcelain)  OUTPUT_FORMAT="porcelain" ;;
       --llm)        OUTPUT_FORMAT="llm" ;;
       --raw)        OUTPUT_FORMAT="raw" ;;

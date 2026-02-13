@@ -6,8 +6,8 @@ _openmeteo() {
   local cur prev words cword
   _init_completion || return
 
-  local commands="weather geo history ensemble climate marine air-quality flood elevation satellite"
-  local global_opts="--api-key= --porcelain --llm --raw --verbose --help --version"
+  local commands="weather geo history ensemble climate marine air-quality flood elevation satellite config"
+  local global_opts="--api-key= --human --porcelain --llm --raw --verbose --help --version"
 
   # Determine the subcommand (first non-option word after "openmeteo")
   local subcmd=""
@@ -37,54 +37,57 @@ _openmeteo() {
             --forecast-days= --forecast-since= --past-days= --start-date= --end-date=
             --hourly-params= --daily-params= --current-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --model= --api-key= --porcelain --llm --raw --help"
+            --timezone= --model= --api-key= --human --porcelain --llm --raw --help"
       ;;
     geo)
-      opts="help --search= --count= --language= --country= --api-key= --porcelain --llm --raw --help"
+      opts="help --search= --count= --language= --country= --api-key= --human --porcelain --llm --raw --help"
       ;;
     history)
       opts="help --lat= --lon= --city= --country= --start-date= --end-date=
             --hourly-params= --daily-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --model= --cell-selection= --api-key= --porcelain --llm --raw --help"
+            --timezone= --model= --cell-selection= --api-key= --human --porcelain --llm --raw --help"
       ;;
     ensemble)
       opts="help --lat= --lon= --city= --country= --models= --hourly-params= --daily-params=
             --forecast-days= --forecast-since= --past-days= --start-date= --end-date=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --timezone= --cell-selection= --api-key= --porcelain --llm --raw --help"
+            --timezone= --cell-selection= --api-key= --human --porcelain --llm --raw --help"
       ;;
     climate)
       opts="help --lat= --lon= --city= --country= --start-date= --end-date=
             --models= --daily-params=
             --temperature-unit= --wind-speed-unit= --precipitation-unit=
-            --cell-selection= --disable-bias-correction --api-key= --porcelain --llm --raw --help"
+            --cell-selection= --disable-bias-correction --api-key= --human --porcelain --llm --raw --help"
       ;;
     marine)
       opts="help --lat= --lon= --city= --country= --current --forecast-days= --forecast-since= --past-days=
             --hourly-params= --daily-params= --current-params=
             --length-unit= --wind-speed-unit= --timezone= --model=
-            --cell-selection= --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
+            --cell-selection= --start-date= --end-date= --api-key= --human --porcelain --llm --raw --help"
       ;;
     air-quality)
       opts="help --lat= --lon= --city= --country= --current --forecast-days= --forecast-since= --past-days=
             --hourly-params= --daily-params= --current-params=
             --domains= --timezone= --cell-selection= --start-date= --end-date=
-            --api-key= --porcelain --llm --raw --help"
+            --api-key= --human --porcelain --llm --raw --help"
       ;;
     flood)
       opts="help --lat= --lon= --city= --country= --forecast-days= --forecast-since= --past-days=
             --daily-params= --model= --cell-selection= --ensemble
-            --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
+            --start-date= --end-date= --api-key= --human --porcelain --llm --raw --help"
       ;;
     elevation)
-      opts="help --lat= --lon= --city= --country= --api-key= --porcelain --llm --raw --help"
+      opts="help --lat= --lon= --city= --country= --api-key= --human --porcelain --llm --raw --help"
       ;;
     satellite)
       opts="help --lat= --lon= --city= --country= --forecast-days= --past-days=
             --hourly-params= --daily-params= --model= --timezone=
             --cell-selection= --tilt= --azimuth= --temporal-resolution=
-            --start-date= --end-date= --api-key= --porcelain --llm --raw --help"
+            --start-date= --end-date= --api-key= --human --porcelain --llm --raw --help"
+      ;;
+    config)
+      opts="help init show path set unset get"
       ;;
   esac
 

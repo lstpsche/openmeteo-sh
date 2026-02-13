@@ -110,6 +110,7 @@ _flood_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -453,6 +454,7 @@ cmd_flood() {
       --start-date=*)       start_date=$(_extract_value "$1") ;;
       --end-date=*)         end_date=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -462,6 +464,9 @@ cmd_flood() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
 
   _init_api_key
 

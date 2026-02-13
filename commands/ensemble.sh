@@ -224,6 +224,7 @@ _ensemble_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -616,7 +617,7 @@ cmd_ensemble() {
   local temperature_unit="${DEFAULT_ENSEMBLE_TEMPERATURE_UNIT}"
   local wind_speed_unit="${DEFAULT_ENSEMBLE_WIND_SPEED_UNIT}"
   local precipitation_unit="${DEFAULT_ENSEMBLE_PRECIPITATION_UNIT}"
-  local timezone="${DEFAULT_ENSEMBLE_TIMEZONE}"
+  local timezone=""
   local cell_selection=""
 
   while [[ $# -gt 0 ]]; do
@@ -639,6 +640,7 @@ cmd_ensemble() {
       --timezone=*)         timezone=$(_extract_value "$1") ;;
       --cell-selection=*)   cell_selection=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -648,6 +650,11 @@ cmd_ensemble() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_units
+  _apply_config_timezone
 
   _init_api_key
 

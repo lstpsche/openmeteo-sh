@@ -179,6 +179,7 @@ _satellite_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -596,7 +597,7 @@ cmd_satellite() {
   local past_days="${DEFAULT_SATELLITE_PAST_DAYS}"
   local hourly_params="" daily_params=""
   local model="${DEFAULT_SATELLITE_MODEL}"
-  local timezone="${DEFAULT_SATELLITE_TIMEZONE}"
+  local timezone=""
   local cell_selection="" tilt="" azimuth=""
   local temporal_resolution=""
   local start_date="" end_date=""
@@ -620,6 +621,7 @@ cmd_satellite() {
       --start-date=*)            start_date=$(_extract_value "$1") ;;
       --end-date=*)              end_date=$(_extract_value "$1") ;;
       --api-key=*)               API_KEY=$(_extract_value "$1") ;;
+      --human)                   OUTPUT_FORMAT="human" ;;
       --porcelain)               OUTPUT_FORMAT="porcelain" ;;
       --llm)                     OUTPUT_FORMAT="llm" ;;
       --raw)                     OUTPUT_FORMAT="raw" ;;
@@ -629,6 +631,10 @@ cmd_satellite() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_timezone
 
   _init_api_key
 

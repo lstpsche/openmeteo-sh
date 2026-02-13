@@ -239,6 +239,7 @@ _weather_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -468,7 +469,7 @@ cmd_weather() {
   local temperature_unit="${DEFAULT_TEMPERATURE_UNIT}"
   local wind_speed_unit="${DEFAULT_WIND_SPEED_UNIT}"
   local precipitation_unit="${DEFAULT_PRECIPITATION_UNIT}"
-  local timezone="${DEFAULT_TIMEZONE}"
+  local timezone=""
   local model=""
 
   while [[ $# -gt 0 ]]; do
@@ -494,6 +495,7 @@ cmd_weather() {
       --timezone=*)         timezone=$(_extract_value "$1") ;;
       --model=*)            model=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -503,6 +505,11 @@ cmd_weather() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  _apply_config_units
+  _apply_config_timezone
 
   _init_api_key
 

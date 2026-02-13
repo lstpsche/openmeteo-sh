@@ -229,6 +229,7 @@ cmd_elevation() {
       --city=*)      city=$(_extract_value "$1") ;;
       --country=*)   country=$(_extract_value "$1") ;;
       --api-key=*)   API_KEY=$(_extract_value "$1") ;;
+      --human)       OUTPUT_FORMAT="human" ;;
       --porcelain)   OUTPUT_FORMAT="porcelain" ;;
       --llm)         OUTPUT_FORMAT="llm" ;;
       --raw)         OUTPUT_FORMAT="raw" ;;
@@ -238,6 +239,9 @@ cmd_elevation() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
 
   _init_api_key
 

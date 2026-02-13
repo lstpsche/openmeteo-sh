@@ -193,6 +193,7 @@ _marine_help_topic() {
   local topic="" fmt="human"
   for arg in "$@"; do
     case "${arg}" in
+      --human)     fmt="human" ;;
       --porcelain) fmt="porcelain" ;;
       --llm)       fmt="llm" ;;
       --raw)       fmt="raw" ;;
@@ -653,7 +654,7 @@ cmd_marine() {
   local hourly_params="" daily_params="" current_params=""
   local length_unit="${DEFAULT_MARINE_LENGTH_UNIT}"
   local wind_speed_unit="${DEFAULT_MARINE_WIND_SPEED_UNIT}"
-  local timezone="${DEFAULT_MARINE_TIMEZONE}"
+  local timezone=""
   local model="" cell_selection=""
   local start_date="" end_date=""
 
@@ -678,6 +679,7 @@ cmd_marine() {
       --start-date=*)       start_date=$(_extract_value "$1") ;;
       --end-date=*)         end_date=$(_extract_value "$1") ;;
       --api-key=*)          API_KEY=$(_extract_value "$1") ;;
+      --human)              OUTPUT_FORMAT="human" ;;
       --porcelain)          OUTPUT_FORMAT="porcelain" ;;
       --llm)                OUTPUT_FORMAT="llm" ;;
       --raw)                OUTPUT_FORMAT="raw" ;;
@@ -687,6 +689,11 @@ cmd_marine() {
     esac
     shift
   done
+
+  # Apply config defaults (CLI flags always win)
+  _apply_config_location
+  [[ -z "${wind_speed_unit}" ]] && wind_speed_unit="${CFG_WIND_SPEED_UNIT:-}"
+  _apply_config_timezone
 
   _init_api_key
 
