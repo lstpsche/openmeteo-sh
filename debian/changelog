@@ -1,3 +1,11 @@
+openmeteo-sh (1.5.0-1) stable; urgency=low
+
+  * Add Fish shell completions (completions/openmeteo.fish).
+  * Fix missing commands/config.sh in Makefile install target.
+  * Update Makefile with Fish completion install/uninstall.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Mon, 09 Feb 2026 23:45:00 +0000
+
 openmeteo-sh (1.4.0-1) stable; urgency=low
 
   * Persistent config file support (~/.config/openmeteo/config).

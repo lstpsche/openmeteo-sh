@@ -4,6 +4,7 @@ BINDIR  ?= $(PREFIX)/bin
 LIBEXEC ?= $(PREFIX)/libexec/openmeteo
 COMPDIR_BASH ?= $(PREFIX)/share/bash-completion/completions
 COMPDIR_ZSH  ?= $(PREFIX)/share/zsh/site-functions
+COMPDIR_FISH ?= $(PREFIX)/share/fish/vendor_completions.d
 
 .PHONY: all install uninstall
 
@@ -27,6 +28,7 @@ install:
 	install -m 644 commands/flood.sh        $(DESTDIR)$(LIBEXEC)/commands/flood.sh
 	install -m 644 commands/elevation.sh    $(DESTDIR)$(LIBEXEC)/commands/elevation.sh
 	install -m 644 commands/satellite.sh    $(DESTDIR)$(LIBEXEC)/commands/satellite.sh
+	install -m 644 commands/config.sh       $(DESTDIR)$(LIBEXEC)/commands/config.sh
 	@echo "Symlinking $(DESTDIR)$(BINDIR)/openmeteo -> $(LIBEXEC)/openmeteo"
 	install -d $(DESTDIR)$(BINDIR)
 	ln -sf $(LIBEXEC)/openmeteo $(DESTDIR)$(BINDIR)/openmeteo
@@ -39,6 +41,10 @@ install:
 		install -d $(DESTDIR)$(COMPDIR_ZSH); \
 		install -m 644 completions/openmeteo.zsh $(DESTDIR)$(COMPDIR_ZSH)/_openmeteo; \
 	fi
+	@if [ -f completions/openmeteo.fish ]; then \
+		install -d $(DESTDIR)$(COMPDIR_FISH); \
+		install -m 644 completions/openmeteo.fish $(DESTDIR)$(COMPDIR_FISH)/openmeteo.fish; \
+	fi
 	@echo "Done. Run 'openmeteo --version' to verify."
 
 uninstall:
@@ -47,4 +53,5 @@ uninstall:
 	rm -rf $(DESTDIR)$(LIBEXEC)
 	rm -f  $(DESTDIR)$(COMPDIR_BASH)/openmeteo 2>/dev/null || true
 	rm -f  $(DESTDIR)$(COMPDIR_ZSH)/_openmeteo 2>/dev/null || true
+	rm -f  $(DESTDIR)$(COMPDIR_FISH)/openmeteo.fish 2>/dev/null || true
 	@echo "Done."

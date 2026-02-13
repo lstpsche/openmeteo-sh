@@ -98,7 +98,7 @@ brew tap lstpsche/tap
 brew install openmeteo-sh
 ```
 
-This also installs bash/zsh tab completions automatically. The CLI command is `openmeteo`.
+This also installs bash/zsh/fish tab completions automatically. The CLI command is `openmeteo`.
 
 ### Debian / Ubuntu (APT repository)
 
@@ -918,6 +918,7 @@ openmeteo-sh/
   completions/
     openmeteo.bash       # bash tab-completion
     openmeteo.zsh        # zsh tab-completion
+    openmeteo.fish       # fish tab-completion
   debian/                # Debian packaging scaffolding
 ```
 
@@ -941,7 +942,7 @@ openmeteo-sh/
 7. Add verbose input validation before API calls.
 8. If the command supports forecasts, add `--forecast-since=N` parsing and conversion.
 9. After arg parsing, call `_apply_config_location` (and `_apply_config_units`, `_apply_config_timezone` if applicable).
-10. Update `completions/openmeteo.bash` and `completions/openmeteo.zsh`.
+10. Update `completions/openmeteo.bash`, `completions/openmeteo.zsh`, and `completions/openmeteo.fish`.
 11. Test all success and failure paths manually.
 
 ### Code style
