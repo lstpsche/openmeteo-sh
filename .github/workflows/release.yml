@@ -25,6 +25,15 @@ jobs:
             exit 1
           fi
 
+      - name: Sync debian/changelog version with tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DEB_VER=$(head -1 debian/changelog | sed 's/.*(\(.*\)-1).*/\1/')
+          if [[ "$DEB_VER" != "$VERSION" ]]; then
+            echo "Patching debian/changelog: $DEB_VER -> $VERSION"
+            sed -i "1s/([^)]*)/($VERSION-1)/" debian/changelog
+          fi
+
       - name: Build .deb package
         run: |
           sudo apt-get update

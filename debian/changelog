@@ -1,3 +1,15 @@
+openmeteo-sh (1.4.0-1) stable; urgency=low
+
+  * Persistent config file support (~/.config/openmeteo/config).
+  * New config subcommand: init, show, set, get, unset, path.
+  * Config defaults for API key, location, output format, units, timezone.
+  * Precedence: CLI flags > env vars > config file > built-in defaults.
+  * New --human flag to override config-set output format.
+  * Fix --human flag in help subcommand causing unknown topic error.
+  * Updated completions (bash/zsh) with config and --human.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Thu, 13 Feb 2026 20:00:00 +0000
+
 openmeteo-sh (1.3.0-1) stable; urgency=low
 
   * New --forecast-since=N argument: skip to day N of the forecast (1=today).
