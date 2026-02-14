@@ -24,7 +24,8 @@ $ openmeteo weather --current --city=London
 
 - **10 API subcommands** covering every Open-Meteo endpoint
 - **Four output formats** — human-friendly (default), porcelain (for scripts), LLM (compact TSV for AI agents), raw JSON
-- **City name resolution** — use `--city=London` instead of lat/lon
+- **City name resolution** — use `--city=London` or `--city London` instead of lat/lon
+- **Flexible argument syntax** — both `--key=value` and `--key value` formats supported
 - **Verbose input validation** — helpful error messages before any API call
 - **Commercial API key support** — via env var or `--api-key` flag
 - **Zero-bloat** — only `bash`, `curl`, and `jq`; no Python, no Node, no compiled binaries
@@ -174,15 +175,18 @@ cd openmeteo-sh && sudo make uninstall
 
 ## Quick Start
 
+Both `--key=value` and `--key value` argument formats are supported. They can be mixed freely.
+
 ```bash
-# Current weather for a city
+# Current weather for a city (either format works)
 openmeteo weather --current --city=London
+openmeteo weather --current --city London
 
 # 3-day forecast by coordinates
-openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
+openmeteo weather --forecast-days 3 --lat 52.52 --lon 13.41
 
 # Search for a location
-openmeteo geo --search=Berlin
+openmeteo geo --search Berlin
 
 # Historical weather
 openmeteo history --city=Paris --start-date=2024-01-01 --end-date=2024-01-31

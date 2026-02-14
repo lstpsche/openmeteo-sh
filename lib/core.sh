@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # core.sh -- shared utilities for openmeteo CLI
 
-OPENMETEO_VERSION="1.5.0"
+OPENMETEO_VERSION="1.6.0"
 
 # Base URLs (no trailing slash)
 BASE_URL_FORECAST="https://api.open-meteo.com/v1/forecast"
@@ -288,6 +288,33 @@ _init_api_key() {
 # Usage: value=$(_extract_value "$1")
 _extract_value() {
   echo "${1#*=}"
+}
+
+# Normalize arguments: convert "--key value" to "--key=value".
+# Boolean flags (no value) are passed through unchanged.
+# Result is stored in _NORMALIZED_ARGS array.
+# Usage: _normalize_args "$@"; set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
+_normalize_args() {
+  _NORMALIZED_ARGS=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --*=*)
+        _NORMALIZED_ARGS+=("$1") ;;
+      --current|--daily|--hourly|--ensemble|--verbose|--help|--human|--porcelain|--llm|--raw|--disable-bias-correction|--version)
+        _NORMALIZED_ARGS+=("$1") ;;
+      --*)
+        if [[ $# -ge 2 && "$2" != --* ]]; then
+          _NORMALIZED_ARGS+=("$1=$2")
+          shift
+        else
+          _NORMALIZED_ARGS+=("$1")
+        fi
+        ;;
+      *)
+        _NORMALIZED_ARGS+=("$1") ;;
+    esac
+    shift
+  done
 }
 
 # ---------------------------------------------------------------------------

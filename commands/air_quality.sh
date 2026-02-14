@@ -551,6 +551,9 @@ cmd_air_quality() {
   local cell_selection=""
   local start_date="" end_date=""
 
+  _normalize_args "$@"
+  set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --lat=*)              lat=$(_extract_value "$1") ;;

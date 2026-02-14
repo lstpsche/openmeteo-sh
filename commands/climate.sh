@@ -577,6 +577,9 @@ cmd_climate() {
   local cell_selection=""
   local disable_bias_correction="false"
 
+  _normalize_args "$@"
+  set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --lat=*)              lat=$(_extract_value "$1") ;;

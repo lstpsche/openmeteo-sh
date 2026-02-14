@@ -136,6 +136,9 @@ cmd_geo() {
   local search="" count="${DEFAULT_GEO_COUNT}" language="${DEFAULT_GEO_LANGUAGE}"
   local country=""
 
+  _normalize_args "$@"
+  set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --search=*)   search=$(_extract_value "$1") ;;

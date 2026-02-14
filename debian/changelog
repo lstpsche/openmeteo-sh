@@ -1,3 +1,11 @@
+openmeteo-sh (1.6.0-1) stable; urgency=low
+
+  * Support both --key=value and --key value argument syntax.
+  * Add _normalize_args() for centralized argument normalization.
+  * Update help text and README to document both formats.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Fri, 14 Feb 2026 01:00:00 +0000
+
 openmeteo-sh (1.5.0-1) stable; urgency=low
 
   * Add Fish shell completions (completions/openmeteo.fish).

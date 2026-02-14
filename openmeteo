@@ -68,11 +68,14 @@ Environment variables:
   OPENMETEO_API_KEY   Default API key for commercial access
   OPENMETEO_CONFIG    Override config file path (default: ~/.config/openmeteo/config)
 
+Arguments accept both --key=value and --key value syntax.
+
 Examples:
   openmeteo weather --current --city=London
+  openmeteo weather --current --city London
   openmeteo geo --search=Berlin
   openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
-  openmeteo weather --current --city=Tokyo --porcelain
+  openmeteo weather --current --city Tokyo --porcelain
   openmeteo elevation --lat=47.37 --lon=8.55
 
 Run 'openmeteo <command> help' for command-specific help.

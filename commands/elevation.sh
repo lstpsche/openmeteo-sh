@@ -222,6 +222,9 @@ cmd_elevation() {
 
   local lat="" lon="" city="" country=""
 
+  _normalize_args "$@"
+  set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --lat=*)       lat=$(_extract_value "$1") ;;

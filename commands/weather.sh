@@ -53,10 +53,13 @@ Output:
   --raw             Raw JSON from API
   --help            Show this help
 
+Arguments accept both --key=value and --key value syntax.
+
 Examples:
   openmeteo weather --current --city=London
+  openmeteo weather --current --city London
   openmeteo weather --forecast-days=3 --lat=52.52 --lon=13.41
-  openmeteo weather --current --forecast-days=2 --city=London --country=GB
+  openmeteo weather --current --forecast-days 2 --city London --country GB
   openmeteo weather --daily --city=Vienna                 # daily only, default params
   openmeteo weather --hourly --city=Vienna                # hourly only, default params
   openmeteo weather --daily --hourly --city=Berlin        # both daily and hourly
@@ -471,6 +474,9 @@ cmd_weather() {
   local precipitation_unit="${DEFAULT_PRECIPITATION_UNIT}"
   local timezone=""
   local model=""
+
+  _normalize_args "$@"
+  set -- "${_NORMALIZED_ARGS[@]+"${_NORMALIZED_ARGS[@]}"}"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
