@@ -103,8 +103,12 @@ This also installs bash/zsh/fish tab completions automatically. The CLI command 
 ### Debian / Ubuntu (APT repository)
 
 ```bash
+# Import the signing key
+curl -fsSL https://lstpsche.github.io/apt-repo/pubkey.gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/openmeteo-sh.gpg
+
 # Add the repository
-echo "deb [trusted=yes] https://lstpsche.github.io/apt-repo stable main" \
+echo "deb [signed-by=/usr/share/keyrings/openmeteo-sh.gpg] https://lstpsche.github.io/apt-repo stable main" \
   | sudo tee /etc/apt/sources.list.d/openmeteo-sh.list
 
 # Install
