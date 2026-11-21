@@ -50,9 +50,9 @@ jobs:
         run: |
           package_root=$(mktemp -d)
           dpkg-deb -x "openmeteo-sh_${VERSION}-1_all.deb" "$package_root"
-          test "$(readlink "$package_root/usr/bin/openmeteo")" = /usr/libexec/openmeteo/openmeteo
-          "$package_root/usr/libexec/openmeteo/openmeteo" --version | grep -Fx "openmeteo ${VERSION}"
-          "$package_root/usr/libexec/openmeteo/openmeteo" geo --help > /dev/null
+          cli="$package_root/usr/bin/openmeteo"
+          "$cli" --version | grep -Fx "openmeteo ${VERSION}"
+          "$cli" geo --help > /dev/null
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -1,3 +1,9 @@
+openmeteo-sh (1.6.3-1) stable; urgency=low
+
+  * Verify the packaged CLI through its installed executable.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Sat, 21 Nov 2026 14:38:16 +0000
+
 openmeteo-sh (1.6.2-1) stable; urgency=low
 
   * Include the CLI, command libraries, and shell completions in the Debian package.
