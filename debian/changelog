@@ -1,3 +1,9 @@
+openmeteo-sh (1.6.2-1) stable; urgency=low
+
+  * Include the CLI, command libraries, and shell completions in the Debian package.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Sat, 21 Nov 2026 14:34:29 +0000
+
 openmeteo-sh (1.6.1-1) stable; urgency=low
 
   * Encode non-ASCII location names correctly in geocoding requests.
