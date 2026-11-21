@@ -6,10 +6,13 @@ COMPDIR_BASH ?= $(PREFIX)/share/bash-completion/completions
 COMPDIR_ZSH  ?= $(PREFIX)/share/zsh/site-functions
 COMPDIR_FISH ?= $(PREFIX)/share/fish/vendor_completions.d
 
-.PHONY: all install uninstall
+.PHONY: all test install uninstall
 
 all:
 	@: # nothing to build — pure shell project
+
+test:
+	bash tests/urlencode.sh
 
 install:
 	@echo "Installing openmeteo to $(DESTDIR)$(LIBEXEC) ..."

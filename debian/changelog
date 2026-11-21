@@ -1,3 +1,9 @@
+openmeteo-sh (1.6.1-1) stable; urgency=low
+
+  * Encode non-ASCII location names correctly in geocoding requests.
+
+ -- Nikita Shkoda <lstpsche@gmail.com>  Sat, 21 Nov 2026 14:26:14 +0000
+
 openmeteo-sh (1.6.0-1) stable; urgency=low
 
   * Support both --key=value and --key value argument syntax.

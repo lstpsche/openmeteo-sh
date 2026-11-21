@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # core.sh -- shared utilities for openmeteo CLI
 
-OPENMETEO_VERSION="1.6.0"
+OPENMETEO_VERSION="1.6.1"
 
 # Base URLs (no trailing slash)
 BASE_URL_FORECAST="https://api.open-meteo.com/v1/forecast"
@@ -465,18 +465,23 @@ _format_param_help() {
   esac
 }
 
-# URL-encode a string (minimal: spaces and special chars).
+# URL-encode UTF-8 bytes. Keep the caller's locale outside this function.
 _urlencode() {
+  local LC_ALL=C
   local string="$1"
   local encoded=""
-  local i char
+  local i byte char escaped
   for (( i=0; i<${#string}; i++ )); do
     char="${string:$i:1}"
     case "${char}" in
       [a-zA-Z0-9.~_-]) encoded+="${char}" ;;
       ' ') encoded+='+' ;;
-      *) encoded+=$(printf '%%%02X' "'${char}") ;;
+      *)
+        printf -v byte '%d' "'${char}"
+        printf -v escaped '%%%02X' "$(( byte & 255 ))"
+        encoded+="${escaped}"
+        ;;
     esac
   done
-  echo "${encoded}"
+  printf '%s\n' "${encoded}"
 }
